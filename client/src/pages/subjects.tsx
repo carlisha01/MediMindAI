@@ -20,16 +20,8 @@ export default function Subjects() {
     queryKey: ["/api/subjects/stats"],
   });
 
-  const getSubjectIcon = (name: string) => {
-    const icons: Record<string, string> = {
-      "Cardiologia": "❤️",
-      "Neurologia": "🧠",
-      "Pediatria": "👶",
-      "Cirurgia": "🔬",
-      "Medicina Interna": "🩺",
-      "Dermatologia": "🔍",
-    };
-    return icons[name] || "📚";
+  const getSubjectIcon = (iconName: string) => {
+    return iconName || "BookOpen";
   };
 
   return (
@@ -71,10 +63,10 @@ export default function Subjects() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
                     <div
-                      className="flex h-12 w-12 items-center justify-center rounded-xl text-2xl"
+                      className="flex h-12 w-12 items-center justify-center rounded-xl"
                       style={{ backgroundColor: `${subject.color}20` }}
                     >
-                      {getSubjectIcon(subject.name)}
+                      <BookOpen className="h-6 w-6" style={{ color: subject.color }} />
                     </div>
                     <div>
                       <CardTitle className="text-lg">{subject.name}</CardTitle>

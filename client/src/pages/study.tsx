@@ -246,17 +246,17 @@ export default function Study() {
                     Taules
                   </TabsTrigger>
                 </TabsList>
-                <TabsContent value="flowcharts" className="mt-4">
+                <TabsContent value="flowcharts" className="mt-4" data-testid="content-flowcharts">
                   <div className="text-center py-8 text-sm text-muted-foreground">
                     Els esquemes es generaran automàticament dels teus documents
                   </div>
                 </TabsContent>
-                <TabsContent value="maps" className="mt-4">
+                <TabsContent value="maps" className="mt-4" data-testid="content-maps">
                   <div className="text-center py-8 text-sm text-muted-foreground">
                     Els mapes conceptuals es generaran automàticament
                   </div>
                 </TabsContent>
-                <TabsContent value="tables" className="mt-4">
+                <TabsContent value="tables" className="mt-4" data-testid="content-tables">
                   <div className="text-center py-8 text-sm text-muted-foreground">
                     Les taules comparatives es generaran automàticament
                   </div>

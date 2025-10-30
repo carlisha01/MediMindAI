@@ -148,9 +148,9 @@ export default function Documents() {
                   <SelectValue placeholder="Assignatura" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Totes les assignatures</SelectItem>
+                  <SelectItem value="all" data-testid="select-item-all-subjects">Totes les assignatures</SelectItem>
                   {subjects?.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
+                    <SelectItem key={subject.id} value={subject.id} data-testid={`select-item-subject-${subject.id}`}>
                       {subject.name}
                     </SelectItem>
                   ))}
@@ -161,11 +161,11 @@ export default function Documents() {
                   <SelectValue placeholder="Tipus" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tots els tipus</SelectItem>
-                  <SelectItem value="pdf">PDF</SelectItem>
-                  <SelectItem value="docx">Word</SelectItem>
-                  <SelectItem value="pptx">PowerPoint</SelectItem>
-                  <SelectItem value="csv">CSV</SelectItem>
+                  <SelectItem value="all" data-testid="select-item-all-types">Tots els tipus</SelectItem>
+                  <SelectItem value="pdf" data-testid="select-item-pdf">PDF</SelectItem>
+                  <SelectItem value="docx" data-testid="select-item-docx">Word</SelectItem>
+                  <SelectItem value="pptx" data-testid="select-item-pptx">PowerPoint</SelectItem>
+                  <SelectItem value="csv" data-testid="select-item-csv">CSV</SelectItem>
                 </SelectContent>
               </Select>
             </div>
