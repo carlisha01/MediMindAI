@@ -2,12 +2,51 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { aiService } from "./services/ai-service";
+import { documentProcessor } from "./services/document-processor";
 import { eq, sql, count } from "drizzle-orm";
 import { db } from "./db";
 import { documents, subjects, topics, progress, studySessions, qaHistory } from "@shared/schema";
+import multer from "multer";
+import path from "path";
+import fs from "fs/promises";
 
 // Mock user ID for demo purposes (in production, use proper authentication)
 const DEMO_USER_ID = "demo-user-001";
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const uploadDir = path.join(process.cwd(), "uploads");
+      try {
+        await fs.mkdir(uploadDir, { recursive: true });
+      } catch (error) {
+        console.error("Error creating upload directory:", error);
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + "-" + file.originalname);
+    },
+  }),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = [
+      "application/pdf",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/csv",
+    ];
+    
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Invalid file type. Only PDF, Word (.docx), and CSV files are allowed. PowerPoint support coming soon."));
+    }
+  },
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard endpoints
@@ -146,28 +185,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/documents/upload", async (req, res) => {
+  app.post("/api/documents/upload", upload.single("file"), async (req, res) => {
     try {
       const userId = DEMO_USER_ID;
-      const { filename, fileType, fileSize, fileContent } = req.body;
-
-      if (!filename || !fileType || !fileSize || !fileContent) {
-        return res.status(400).json({ error: "Missing required fields" });
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
       }
+
+      const file = req.file;
+      
+      // Extract file extension and normalize it
+      const getFileExtension = (filename: string, mimetype: string): string => {
+        const ext = path.extname(filename).toLowerCase().slice(1);
+        if (ext) return ext;
+        
+        // Fallback to MIME type mapping
+        const mimeToExt: Record<string, string> = {
+          "application/pdf": "pdf",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+          "text/csv": "csv",
+        };
+        return mimeToExt[mimetype] || "unknown";
+      };
 
       // Create document record
       const document = await storage.createDocument({
         userId,
-        filename,
-        fileType,
-        fileSize,
-        filePath: `/uploads/${filename}`,
+        filename: file.originalname,
+        fileType: getFileExtension(file.originalname, file.mimetype),
+        fileSize: file.size,
+        filePath: file.path,
         processingStatus: "pending",
         subjectId: null,
       });
 
       // Process document asynchronously (in background)
-      processDocumentAsync(document.id, fileContent, filename);
+      processDocumentAsync(document.id, file.path, file.originalname, file.mimetype);
 
       res.json(document);
     } catch (error) {
@@ -345,13 +400,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Helper function to process documents asynchronously
-  async function processDocumentAsync(documentId: string, content: string, filename: string) {
+  async function processDocumentAsync(documentId: string, filePath: string, filename: string, fileType: string) {
     try {
       // Update status to processing
       await storage.updateDocumentStatus(documentId, "processing");
 
-      // Extract topics using AI
-      const extracted = await aiService.extractTopicsFromText(content, filename);
+      // Process the document file to extract text
+      const processed = await documentProcessor.processDocument(filePath, fileType);
+      
+      // Extract topics using AI from the processed text
+      const extracted = await aiService.extractTopicsFromText(processed.text, filename);
 
       // Find or create subject
       let subject = (await storage.getSubjects()).find(
@@ -385,6 +443,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update status to completed
       await storage.updateDocumentStatus(documentId, "completed");
+      
+      console.log(`Document ${documentId} processed successfully. Extracted ${extracted.topics.length} topics.`);
     } catch (error) {
       console.error("Error processing document:", error);
       await storage.updateDocumentStatus(documentId, "failed");

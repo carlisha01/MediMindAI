@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +14,17 @@ import {
 import { Upload, FileText, FileSpreadsheet, Presentation, Search, Filter, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import type { Document, Subject } from "@shared/schema";
 
 export default function Documents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const { data: documents, isLoading: documentsLoading } = useQuery<Document[]>({
     queryKey: ["/api/documents"],
@@ -93,6 +98,57 @@ export default function Documents() {
     });
   };
 
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const response = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to upload document");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/subjects"] });
+      toast({
+        title: "Document pujat",
+        description: "El document s'està processant. Aviat veuràs els temes extrets.",
+      });
+      setUploading(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "No s'ha pogut pujar el document. Torna-ho a provar.",
+        variant: "destructive",
+      });
+      setUploading(false);
+    },
+  });
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    setUploading(true);
+    
+    for (const file of Array.from(files)) {
+      await uploadMutation.mutateAsync(file);
+    }
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const filteredDocuments = documents?.filter((doc) => {
     const matchesSearch = doc.filename.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSubject = filterSubject === "all" || doc.subjectId === filterSubject;
@@ -117,11 +173,33 @@ export default function Documents() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Puja els teus documents</h3>
             <p className="text-sm text-muted-foreground mb-4 max-w-md">
-              Suportem PDF, Word (.docx), PowerPoint (.pptx) i CSV. Arrrossega els arxius aquí o fes clic per seleccionar.
+              Suportem PDF, Word (.docx) i CSV. Arrrossega els arxius aquí o fes clic per seleccionar.
             </p>
-            <Button data-testid="button-select-files">
-              <Upload className="h-4 w-4 mr-2" />
-              Seleccionar Arxius
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.docx,.csv"
+              onChange={handleFileSelect}
+              className="hidden"
+              data-testid="input-file-upload"
+            />
+            <Button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              data-testid="button-select-files"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Pujant...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Seleccionar Arxius
+                </>
+              )}
             </Button>
           </div>
         </CardContent>
