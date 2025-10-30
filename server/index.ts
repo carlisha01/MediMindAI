@@ -48,7 +48,8 @@ app.use((req, res, next) => {
 
 (async () => {
   // Seed initial data
-  const { seedSubjects } = await import("./seed");
+  const { seedDemoUser, seedSubjects } = await import("./seed");
+  await seedDemoUser();
   await seedSubjects();
 
   const server = await registerRoutes(app);

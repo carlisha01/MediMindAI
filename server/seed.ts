@@ -1,6 +1,6 @@
-// Seed initial subjects for the medical study assistant
+// Seed initial subjects and demo user for the medical study assistant
 import { db } from "./db";
-import { subjects } from "@shared/schema";
+import { subjects, users } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 const initialSubjects = [
@@ -41,6 +41,30 @@ const initialSubjects = [
     color: "#ec4899",
   },
 ];
+
+export async function seedDemoUser() {
+  try {
+    console.log("Seeding demo user...");
+    
+    const demoUserId = "demo-user-001";
+    
+    // Check if demo user already exists
+    const existing = await db.select().from(users).where(eq(users.id, demoUserId)).limit(1);
+    
+    if (existing.length === 0) {
+      await db.insert(users).values({
+        id: demoUserId,
+        username: "Estudiant Mèdic",
+        password: "demo-no-auth",
+      });
+      console.log("Created demo user");
+    } else {
+      console.log("Demo user already exists");
+    }
+  } catch (error) {
+    console.error("Error seeding demo user:", error);
+  }
+}
 
 export async function seedSubjects() {
   try {

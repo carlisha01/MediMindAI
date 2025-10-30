@@ -29,13 +29,15 @@ export default function Study() {
 
   const askQuestionMutation = useMutation({
     mutationFn: async (data: { question: string; language: string }) => {
-      return await apiRequest("POST", "/api/qa/ask", data);
+      const response = await apiRequest("POST", "/api/qa/ask", data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/qa/history"] });
       setQuestion("");
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Q&A mutation error:", error);
       toast({
         title: "Error",
         description: "No s'ha pogut processar la pregunta. Torna-ho a provar.",
@@ -65,12 +67,12 @@ export default function Study() {
     {
       role: "user" as const,
       content: item.question,
-      timestamp: item.askedAt,
+      timestamp: new Date(item.askedAt).toISOString(),
     },
     {
       role: "assistant" as const,
       content: item.answer,
-      timestamp: item.askedAt,
+      timestamp: new Date(item.askedAt).toISOString(),
     },
   ]).flat() || [];
 
