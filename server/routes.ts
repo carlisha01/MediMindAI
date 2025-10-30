@@ -9,6 +9,7 @@ import { documents, subjects, topics, progress, studySessions, qaHistory } from 
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
+import AdmZip from "adm-zip";
 
 // Mock user ID for demo purposes (in production, use proper authentication)
 const DEMO_USER_ID = "demo-user-001";
@@ -38,12 +39,14 @@ const upload = multer({
       "application/pdf",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       "text/csv",
+      "application/zip",
+      "application/x-zip-compressed",
     ];
     
-    if (allowedTypes.includes(file.mimetype)) {
+    if (allowedTypes.includes(file.mimetype) || file.originalname.endsWith('.zip')) {
       cb(null, true);
     } else {
-      cb(new Error("Invalid file type. Only PDF, Word (.docx), and CSV files are allowed. PowerPoint support coming soon."));
+      cb(new Error("Invalid file type. Only PDF, Word (.docx), CSV, and ZIP files are allowed."));
     }
   },
 });
@@ -206,25 +209,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
           "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
           "text/csv": "csv",
+          "application/zip": "zip",
+          "application/x-zip-compressed": "zip",
         };
         return mimeToExt[mimetype] || "unknown";
       };
 
-      // Create document record
-      const document = await storage.createDocument({
-        userId,
-        filename: file.originalname,
-        fileType: getFileExtension(file.originalname, file.mimetype),
-        fileSize: file.size,
-        filePath: file.path,
-        processingStatus: "pending",
-        subjectId: null,
-      });
+      const fileExtension = getFileExtension(file.originalname, file.mimetype);
 
-      // Process document asynchronously (in background)
-      processDocumentAsync(document.id, file.path, file.originalname, file.mimetype);
+      // Handle ZIP files by extracting and processing each file
+      if (fileExtension === "zip") {
+        try {
+          const zip = new AdmZip(file.path);
+          const zipEntries = zip.getEntries();
+          const processedFiles: any[] = [];
+          
+          // Helper to get proper MIME type from extension
+          const getMimeTypeFromExtension = (ext: string): string => {
+            const extToMime: Record<string, string> = {
+              "pdf": "application/pdf",
+              "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              "csv": "text/csv",
+            };
+            return extToMime[ext] || "application/octet-stream";
+          };
 
-      res.json(document);
+          for (const entry of zipEntries) {
+            if (entry.isDirectory) continue;
+            
+            // Get file extension
+            const entryExt = path.extname(entry.entryName).toLowerCase().slice(1);
+            const allowedExtensions = ["pdf", "docx", "csv"];
+            
+            if (!allowedExtensions.includes(entryExt)) {
+              console.log(`Skipping unsupported file in ZIP: ${entry.entryName}`);
+              continue;
+            }
+
+            // Extract file to temp location
+            const extractDir = path.join(process.cwd(), "uploads", "extracted");
+            await fs.mkdir(extractDir, { recursive: true });
+            
+            const extractedPath = path.join(extractDir, `${Date.now()}-${path.basename(entry.entryName)}`);
+            await fs.writeFile(extractedPath, entry.getData());
+
+            // Get proper MIME type
+            const mimeType = getMimeTypeFromExtension(entryExt);
+
+            // Create document record for each file
+            const document = await storage.createDocument({
+              userId,
+              filename: path.basename(entry.entryName),
+              fileType: entryExt,
+              fileSize: entry.header.size,
+              filePath: extractedPath,
+              processingStatus: "pending",
+              subjectId: null,
+            });
+
+            // Process document asynchronously with correct MIME type
+            processDocumentAsync(document.id, extractedPath, path.basename(entry.entryName), mimeType);
+            
+            processedFiles.push(document);
+          }
+
+          // Clean up ZIP file
+          await fs.unlink(file.path);
+
+          res.json({ 
+            message: `ZIP file processed. Extracted ${processedFiles.length} documents.`,
+            documents: processedFiles 
+          });
+        } catch (zipError) {
+          console.error("Error processing ZIP file:", zipError);
+          return res.status(500).json({ error: "Failed to process ZIP file" });
+        }
+      } else {
+        // Handle regular file upload
+        const document = await storage.createDocument({
+          userId,
+          filename: file.originalname,
+          fileType: fileExtension,
+          fileSize: file.size,
+          filePath: file.path,
+          processingStatus: "pending",
+          subjectId: null,
+        });
+
+        // Process document asynchronously (in background)
+        processDocumentAsync(document.id, file.path, file.originalname, file.mimetype);
+
+        res.json(document);
+      }
     } catch (error) {
       console.error("Error uploading document:", error);
       res.status(500).json({ error: "Failed to upload document" });
