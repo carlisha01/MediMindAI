@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Send, Sparkles, Languages, Loader2, FileText, Network, Table } from "lucide-react";
+import { MessageSquare, Send, Sparkles, Loader2, FileText, Network, Table } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,6 @@ interface QaMessage {
 
 export default function Study() {
   const [question, setQuestion] = useState("");
-  const [useCatalan, setUseCatalan] = useState(true);
   const { toast } = useToast();
 
   const { data: history, isLoading: historyLoading } = useQuery<QaHistory[]>({
@@ -52,7 +51,7 @@ export default function Study() {
 
     askQuestionMutation.mutate({
       question: question.trim(),
-      language: useCatalan ? "ca" : "es",
+      language: "ca", // Always Catalan
     });
   };
 
@@ -89,21 +88,10 @@ export default function Study() {
         <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
           <Card className="flex-1 flex flex-col min-h-0">
             <CardHeader className="flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Conversa
-                </CardTitle>
-                <Button
-                  variant={useCatalan ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setUseCatalan(!useCatalan)}
-                  data-testid="button-toggle-language"
-                >
-                  <Languages className="h-4 w-4 mr-2" />
-                  {useCatalan ? "Català" : "Castellà"}
-                </Button>
-              </div>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Conversa
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col min-h-0 gap-4">
               <ScrollArea className="flex-1 pr-4">
@@ -172,11 +160,7 @@ export default function Study() {
               <form onSubmit={handleSubmit} className="flex-shrink-0">
                 <div className="flex gap-2">
                   <Textarea
-                    placeholder={
-                      useCatalan
-                        ? "Escriu la teva pregunta aquí..."
-                        : "Escribe tu pregunta aquí..."
-                    }
+                    placeholder="Escriu la teva pregunta aquí..."
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
                     className="min-h-[60px] resize-none"
