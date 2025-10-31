@@ -410,9 +410,13 @@ Retorna NOMÉS les preguntes, una per línia, sense numeració ni format adicion
   }
 
   /**
-   * Generate MCQ questions based on subject topics
+   * Generate MCQ questions based on subject topics or general medical knowledge
    */
-  async generateMCQQuestions(topics: Topic[], count: number = 5): Promise<Array<{
+  async generateMCQQuestions(
+    topics: Topic[], 
+    count: number = 5, 
+    subjectName?: string
+  ): Promise<Array<{
     question: string;
     options: string[];
     correctAnswer: number;
@@ -421,17 +425,43 @@ Retorna NOMÉS les preguntes, una per línia, sense numeració ni format adicion
     topicId?: string;
   }>> {
     try {
+      let prompt: string;
+
       if (!topics || topics.length === 0) {
-        throw new Error("No topics available for MCQ generation");
-      }
+        // Generate questions from general medical knowledge for the subject
+        const subject = subjectName || "medicina general";
+        
+        prompt = `Genera ${count} preguntes de resposta múltiple (MCQ) en CATALÀ sobre ${subject}.
 
-      // Build context from topics
-      const topicContent = topics
-        .slice(0, 5) // Use up to 5 topics for MCQ generation
-        .map(t => `Tema: ${t.title}\nTipus: ${t.topicType}\nContingut: ${t.content.substring(0, 500)}\n`)
-        .join('\n---\n');
+Les preguntes han de cobrir conceptes clau, casos clínics comuns, diagnòstic i tractament rellevant per a l'assignatura de ${subject} de medicina.
 
-      const prompt = `Basant-te en aquests temes mèdics:
+Per a cada pregunta proporciona:
+1. La pregunta
+2. 4 opcions de resposta (A, B, C, D)
+3. L'índex de la resposta correcta (0 per A, 1 per B, 2 per C, 3 per D)
+4. Una explicació detallada de per què la resposta és correcta
+5. Nivell de dificultat: easy, medium, o hard
+
+Retorna les preguntes en format JSON:
+[
+  {
+    "question": "pregunta aquí",
+    "options": ["A...", "B...", "C...", "D..."],
+    "correctAnswer": 0,
+    "explanation": "explicació detallada",
+    "difficulty": "medium"
+  }
+]
+
+Retorna NOMÉS el JSON, sense text adicional.`;
+      } else {
+        // Build context from topics
+        const topicContent = topics
+          .slice(0, 5) // Use up to 5 topics for MCQ generation
+          .map(t => `Tema: ${t.title}\nTipus: ${t.topicType}\nContingut: ${t.content.substring(0, 500)}\n`)
+          .join('\n---\n');
+
+        prompt = `Basant-te en aquests temes mèdics:
 
 ${topicContent}
 
@@ -456,6 +486,7 @@ Retorna les preguntes en format JSON:
 ]
 
 Retorna NOMÉS el JSON, sense text adicional.`;
+      }
 
       const response = await openai.chat.completions.create({
         model: "gpt-5",
@@ -470,10 +501,14 @@ Retorna NOMÉS el JSON, sense text adicional.`;
       });
 
       const content = response.choices[0].message.content || "{}";
+      console.log("AI MCQ Response:", content.substring(0, 500)); // Log first 500 chars
+      
       const parsed = JSON.parse(content);
+      console.log("Parsed MCQ data:", JSON.stringify(parsed).substring(0, 200));
       
       // Handle both array and object with questions array
       const questions = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+      console.log(`Found ${questions.length} MCQ questions to return`);
       
       return questions.map((q: any, idx: number) => ({
         question: q.question || "",
@@ -481,7 +516,8 @@ Retorna NOMÉS el JSON, sense text adicional.`;
         correctAnswer: q.correctAnswer ?? 0,
         explanation: q.explanation || "",
         difficulty: q.difficulty || "medium",
-        topicId: topics[idx % topics.length]?.id,
+        // Only assign topicId if topics exist
+        topicId: topics.length > 0 ? topics[idx % topics.length]?.id : undefined,
       }));
     } catch (error) {
       console.error("Error generating MCQ questions:", error);

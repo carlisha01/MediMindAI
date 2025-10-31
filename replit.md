@@ -154,6 +154,25 @@ All core features have been successfully implemented and tested:
 
 ### Recent Updates
 
+**October 31, 2025: Dynamic Suggested Questions & MCQ Test System - IN PROGRESS**
+- Implemented dynamic suggested questions system:
+  - Backend endpoint `/api/qa/suggested-questions` generates questions from user's uploaded topics
+  - Falls back to default questions if no topics exist
+  - Study page updated to fetch and display dynamic questions with loading states
+- Created comprehensive MCQ test system:
+  - New database tables: mcqQuestions (with JSONB options array) and mcqAttempts
+  - Backend API endpoints for MCQ generation, retrieval, and answer submission
+  - AI service method `generateMCQQuestions()` supports both topic-based and general medical knowledge questions
+  - MCQ Test page with subject selection, question display, answer selection, immediate feedback
+  - Real-time score tracking in header and sidebar
+  - Progress tracking with difficulty badges and progress bars
+  - All interactive elements have comprehensive data-testid attributes for automated testing
+- Navigation: Added "Tests MCQ" to sidebar with ClipboardList icon
+- Current Status: Debugging MCQ generation persistence issue
+  - Generation succeeds but questions need to be verified in database
+  - Added comprehensive logging for AI response and database operations
+  - Working to ensure questions are properly saved and retrieved
+
 **October 31, 2025: RAG-Enhanced AI Study Assistant - COMPLETE**
 - Implemented Retrieval-Augmented Generation (RAG) for "top tier" study assistant
 - Advanced multilingual context retrieval in ai-service.ts:

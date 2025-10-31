@@ -491,20 +491,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing subjectId" });
       }
 
-      // Get topics for the subject
-      const subjectTopics = await storage.getTopicsBySubject(subjectId);
-
-      if (subjectTopics.length === 0) {
-        return res.status(400).json({ error: "No topics found for this subject" });
+      // Get subject info
+      const subject = await storage.getSubject(subjectId);
+      if (!subject) {
+        return res.status(404).json({ error: "Subject not found" });
       }
 
-      // Generate MCQ questions using AI
-      const generatedQuestions = await aiService.generateMCQQuestions(subjectTopics, count);
+      // Get topics for the subject (may be empty)
+      const subjectTopics = await storage.getTopicsBySubject(subjectId);
+
+      // Generate MCQ questions using AI (works with or without topics)
+      const generatedQuestions = await aiService.generateMCQQuestions(
+        subjectTopics, 
+        count, 
+        subject.name
+      );
+
+      console.log(`Generated ${generatedQuestions.length} MCQ questions for subject ${subject.name}`);
 
       // Save questions to database
       const savedQuestions = await Promise.all(
-        generatedQuestions.map(q =>
-          storage.createMcqQuestion({
+        generatedQuestions.map(q => {
+          console.log("Saving MCQ question:", { question: q.question.substring(0, 50), optionsCount: q.options.length });
+          return storage.createMcqQuestion({
             userId,
             subjectId,
             topicId: q.topicId || null,
@@ -513,10 +522,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             correctAnswer: q.correctAnswer,
             explanation: q.explanation,
             difficulty: q.difficulty,
-          })
-        )
+          });
+        })
       );
 
+      console.log(`Saved ${savedQuestions.length} MCQ questions to database`);
       res.json(savedQuestions);
     } catch (error) {
       console.error("Error generating MCQ questions:", error);
