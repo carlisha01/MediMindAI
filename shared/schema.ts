@@ -106,6 +106,30 @@ export const qaHistory = pgTable("qa_history", {
   askedAt: timestamp("asked_at").notNull().defaultNow(),
 });
 
+// MCQ Questions - generated multiple-choice questions based on subject content
+export const mcqQuestions = pgTable("mcq_questions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  subjectId: varchar("subject_id").references(() => subjects.id, { onDelete: "set null" }),
+  topicId: varchar("topic_id").references(() => topics.id, { onDelete: "set null" }),
+  question: text("question").notNull(),
+  options: jsonb("options").notNull().$type<string[]>(), // Array of 4 options
+  correctAnswer: integer("correct_answer").notNull(), // Index of correct option (0-3)
+  explanation: text("explanation").notNull(), // Explanation of correct answer
+  difficulty: text("difficulty").notNull().default("medium"), // easy, medium, hard
+  generatedAt: timestamp("generated_at").notNull().defaultNow(),
+});
+
+// MCQ Attempts - user's answers to MCQ questions
+export const mcqAttempts = pgTable("mcq_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  questionId: varchar("question_id").notNull().references(() => mcqQuestions.id, { onDelete: "cascade" }),
+  selectedAnswer: integer("selected_answer").notNull(), // Index of selected option (0-3)
+  isCorrect: boolean("is_correct").notNull(),
+  attemptedAt: timestamp("attempted_at").notNull().defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   documents: many(documents),
@@ -113,6 +137,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   progress: many(progress),
   qaHistory: many(qaHistory),
   visualSummaries: many(visualSummaries),
+  mcqQuestions: many(mcqQuestions),
+  mcqAttempts: many(mcqAttempts),
 }));
 
 export const documentsRelations = relations(documents, ({ one, many }) => ({
@@ -135,6 +161,7 @@ export const subjectsRelations = relations(subjects, ({ many }) => ({
   progress: many(progress),
   qaHistory: many(qaHistory),
   visualSummaries: many(visualSummaries),
+  mcqQuestions: many(mcqQuestions),
 }));
 
 export const topicsRelations = relations(topics, ({ one, many }) => ({
@@ -149,6 +176,7 @@ export const topicsRelations = relations(topics, ({ one, many }) => ({
   progress: many(progress),
   qaHistory: many(qaHistory),
   studySessions: many(studySessions),
+  mcqQuestions: many(mcqQuestions),
 }));
 
 export const extractedContentRelations = relations(extractedContent, ({ one }) => ({
@@ -214,6 +242,33 @@ export const qaHistoryRelations = relations(qaHistory, ({ one }) => ({
   }),
 }));
 
+export const mcqQuestionsRelations = relations(mcqQuestions, ({ one, many }) => ({
+  user: one(users, {
+    fields: [mcqQuestions.userId],
+    references: [users.id],
+  }),
+  subject: one(subjects, {
+    fields: [mcqQuestions.subjectId],
+    references: [subjects.id],
+  }),
+  topic: one(topics, {
+    fields: [mcqQuestions.topicId],
+    references: [topics.id],
+  }),
+  attempts: many(mcqAttempts),
+}));
+
+export const mcqAttemptsRelations = relations(mcqAttempts, ({ one }) => ({
+  user: one(users, {
+    fields: [mcqAttempts.userId],
+    references: [users.id],
+  }),
+  question: one(mcqQuestions, {
+    fields: [mcqAttempts.questionId],
+    references: [mcqQuestions.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, uploadedAt: true });
@@ -224,6 +279,8 @@ export const insertVisualSummarySchema = createInsertSchema(visualSummaries).omi
 export const insertStudySessionSchema = createInsertSchema(studySessions).omit({ id: true, startedAt: true });
 export const insertProgressSchema = createInsertSchema(progress).omit({ id: true });
 export const insertQaHistorySchema = createInsertSchema(qaHistory).omit({ id: true, askedAt: true });
+export const insertMcqQuestionSchema = createInsertSchema(mcqQuestions).omit({ id: true, generatedAt: true });
+export const insertMcqAttemptSchema = createInsertSchema(mcqAttempts).omit({ id: true, attemptedAt: true });
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -252,3 +309,9 @@ export type InsertProgress = z.infer<typeof insertProgressSchema>;
 
 export type QaHistory = typeof qaHistory.$inferSelect;
 export type InsertQaHistory = z.infer<typeof insertQaHistorySchema>;
+
+export type McqQuestion = typeof mcqQuestions.$inferSelect;
+export type InsertMcqQuestion = z.infer<typeof insertMcqQuestionSchema>;
+
+export type McqAttempt = typeof mcqAttempts.$inferSelect;
+export type InsertMcqAttempt = z.infer<typeof insertMcqAttemptSchema>;
