@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileText, FileSpreadsheet, Presentation, Search, Filter, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Upload, FileText, FileSpreadsheet, Search, Filter, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -40,8 +40,6 @@ export default function Documents() {
         return FileText;
       case "docx":
         return FileText;
-      case "pptx":
-        return Presentation;
       case "csv":
         return FileSpreadsheet;
       default:
@@ -242,7 +240,6 @@ export default function Documents() {
                   <SelectItem value="all" data-testid="select-item-all-types">Tots els tipus</SelectItem>
                   <SelectItem value="pdf" data-testid="select-item-pdf">PDF</SelectItem>
                   <SelectItem value="docx" data-testid="select-item-docx">Word</SelectItem>
-                  <SelectItem value="pptx" data-testid="select-item-pptx">PowerPoint</SelectItem>
                   <SelectItem value="csv" data-testid="select-item-csv">CSV</SelectItem>
                 </SelectContent>
               </Select>
