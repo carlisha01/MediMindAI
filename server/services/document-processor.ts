@@ -92,25 +92,6 @@ class DocumentProcessor {
     }
   }
 
-  async processPowerPoint(filePath: string): Promise<ProcessedDocument> {
-    try {
-      // For PowerPoint, we'll extract text from the XML structure manually
-      // This is a simplified version - a full implementation would use a proper library
-      const fileContent = await fs.readFile(filePath, "utf-8");
-      
-      // Basic placeholder - in production, use a proper PPTX parser
-      return {
-        text: `PowerPoint document: ${path.basename(filePath)}\n\nNote: PowerPoint processing is currently limited. Please convert to PDF for better text extraction.`,
-        metadata: {
-          wordCount: 50,
-        },
-      };
-    } catch (error) {
-      console.error("Error processing PowerPoint:", error);
-      throw new Error("Failed to process PowerPoint file");
-    }
-  }
-
   async processDocument(filePath: string, fileType: string): Promise<ProcessedDocument> {
     const extension = fileType.toLowerCase();
     
@@ -126,10 +107,6 @@ class DocumentProcessor {
       case "csv":
       case "text/csv":
         return this.processCSV(filePath);
-      
-      case "pptx":
-      case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-        return this.processPowerPoint(filePath);
       
       default:
         throw new Error(`Unsupported file type: ${extension}`);

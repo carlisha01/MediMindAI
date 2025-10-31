@@ -207,7 +207,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const mimeToExt: Record<string, string> = {
           "application/pdf": "pdf",
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-          "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
           "text/csv": "csv",
           "application/zip": "zip",
           "application/x-zip-compressed": "zip",
