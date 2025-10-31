@@ -456,6 +456,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get dynamic suggested questions based on user's topics
+  app.get("/api/qa/suggested-questions", async (req, res) => {
+    try {
+      const userId = DEMO_USER_ID;
+      const userTopics = await storage.getAllTopicsByUser(userId);
+      const suggestedQuestions = await aiService.generateSuggestedQuestions(userTopics, 4);
+      res.json({ questions: suggestedQuestions });
+    } catch (error) {
+      console.error("Error generating suggested questions:", error);
+      res.status(500).json({ error: "Failed to generate suggested questions" });
+    }
+  });
+
+  // MCQ endpoints
+  app.get("/api/mcq/questions/:subjectId", async (req, res) => {
+    try {
+      const userId = DEMO_USER_ID;
+      const { subjectId } = req.params;
+      const questions = await storage.getMcqQuestionsBySubject(userId, subjectId);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching MCQ questions:", error);
+      res.status(500).json({ error: "Failed to fetch MCQ questions" });
+    }
+  });
+
+  app.post("/api/mcq/generate", async (req, res) => {
+    try {
+      const userId = DEMO_USER_ID;
+      const { subjectId, count = 5 } = req.body;
+
+      if (!subjectId) {
+        return res.status(400).json({ error: "Missing subjectId" });
+      }
+
+      // Get topics for the subject
+      const subjectTopics = await storage.getTopicsBySubject(subjectId);
+
+      if (subjectTopics.length === 0) {
+        return res.status(400).json({ error: "No topics found for this subject" });
+      }
+
+      // Generate MCQ questions using AI
+      const generatedQuestions = await aiService.generateMCQQuestions(subjectTopics, count);
+
+      // Save questions to database
+      const savedQuestions = await Promise.all(
+        generatedQuestions.map(q =>
+          storage.createMcqQuestion({
+            userId,
+            subjectId,
+            topicId: q.topicId || null,
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation,
+            difficulty: q.difficulty,
+          })
+        )
+      );
+
+      res.json(savedQuestions);
+    } catch (error) {
+      console.error("Error generating MCQ questions:", error);
+      res.status(500).json({ error: "Failed to generate MCQ questions" });
+    }
+  });
+
+  app.post("/api/mcq/attempt", async (req, res) => {
+    try {
+      const userId = DEMO_USER_ID;
+      const { questionId, selectedAnswer } = req.body;
+
+      if (!questionId || selectedAnswer === undefined) {
+        return res.status(400).json({ error: "Missing questionId or selectedAnswer" });
+      }
+
+      // Get the question to check correctness
+      const questions = await storage.getMcqQuestions(userId);
+      const question = questions.find(q => q.id === questionId);
+
+      if (!question) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+
+      const isCorrect = question.correctAnswer === selectedAnswer;
+
+      // Save attempt
+      const attempt = await storage.createMcqAttempt({
+        userId,
+        questionId,
+        selectedAnswer,
+        isCorrect,
+      });
+
+      res.json({
+        ...attempt,
+        correctAnswer: question.correctAnswer,
+        explanation: question.explanation,
+      });
+    } catch (error) {
+      console.error("Error recording MCQ attempt:", error);
+      res.status(500).json({ error: "Failed to record MCQ attempt" });
+    }
+  });
+
   // Progress endpoints
   app.get("/api/progress/stats", async (req, res) => {
     try {

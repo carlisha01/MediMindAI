@@ -346,6 +346,148 @@ Respond with ONLY the specialty name, nothing else.`;
       return "General Medicine";
     }
   }
+
+  /**
+   * Generate suggested questions based on user's uploaded topics
+   */
+  async generateSuggestedQuestions(topics: Topic[], count: number = 4): Promise<string[]> {
+    try {
+      if (!topics || topics.length === 0) {
+        return [
+          "Explica'm les causes principals de la insuficiència cardíaca",
+          "Quins són els símptomes de la meningitis?",
+          "Com es diagnostica la diabetis tipus 2?",
+          "Diferències entre angina de pit i infart de miocardi",
+        ];
+      }
+
+      // Build context from user's topics
+      const topicSummary = topics
+        .slice(0, 10) // Use up to 10 topics for context
+        .map(t => `- ${t.title} (${t.topicType})`)
+        .join('\n');
+
+      const prompt = `Basant-te en aquests temes mèdics que l'estudiant ha pujat:
+
+${topicSummary}
+
+Genera ${count} preguntes d'estudi rellevants i específiques sobre aquests temes en CATALÀ.
+Les preguntes han de ser clares, educatives i animar a l'estudiant a aprofundir en el contingut.
+Retorna NOMÉS les preguntes, una per línia, sense numeració ni format adicional.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        max_completion_tokens: 500,
+      });
+
+      const content = response.choices[0].message.content || "";
+      const questions = content
+        .split('\n')
+        .filter(line => line.trim().length > 10)
+        .map(line => line.replace(/^[-•\d.)\s]+/, '').trim())
+        .filter(q => q.length > 0)
+        .slice(0, count);
+
+      return questions.length > 0 ? questions : [
+        "Explica'm els conceptes principals dels teus documents",
+        "Quins són els punts clau que has estudiat?",
+        "Com es relacionen els temes que has pujat?",
+        "Explica'm un cas clínic dels teus materials",
+      ];
+    } catch (error) {
+      console.error("Error generating suggested questions:", error);
+      return [
+        "Explica'm els conceptes principals dels teus documents",
+        "Quins són els punts clau que has estudiat?",
+      ];
+    }
+  }
+
+  /**
+   * Generate MCQ questions based on subject topics
+   */
+  async generateMCQQuestions(topics: Topic[], count: number = 5): Promise<Array<{
+    question: string;
+    options: string[];
+    correctAnswer: number;
+    explanation: string;
+    difficulty: string;
+    topicId?: string;
+  }>> {
+    try {
+      if (!topics || topics.length === 0) {
+        throw new Error("No topics available for MCQ generation");
+      }
+
+      // Build context from topics
+      const topicContent = topics
+        .slice(0, 5) // Use up to 5 topics for MCQ generation
+        .map(t => `Tema: ${t.title}\nTipus: ${t.topicType}\nContingut: ${t.content.substring(0, 500)}\n`)
+        .join('\n---\n');
+
+      const prompt = `Basant-te en aquests temes mèdics:
+
+${topicContent}
+
+Genera ${count} preguntes de resposta múltiple (MCQ) en CATALÀ sobre aquests temes.
+
+Per a cada pregunta proporciona:
+1. La pregunta
+2. 4 opcions de resposta (A, B, C, D)
+3. L'índex de la resposta correcta (0 per A, 1 per B, 2 per C, 3 per D)
+4. Una explicació detallada de per què la resposta és correcta
+5. Nivell de dificultat: easy, medium, o hard
+
+Retorna les preguntes en format JSON:
+[
+  {
+    "question": "pregunta aquí",
+    "options": ["A...", "B...", "C...", "D..."],
+    "correctAnswer": 0,
+    "explanation": "explicació detallada",
+    "difficulty": "medium"
+  }
+]
+
+Retorna NOMÉS el JSON, sense text adicional.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        max_completion_tokens: 3000,
+        response_format: { type: "json_object" },
+      });
+
+      const content = response.choices[0].message.content || "{}";
+      const parsed = JSON.parse(content);
+      
+      // Handle both array and object with questions array
+      const questions = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+      
+      return questions.map((q: any, idx: number) => ({
+        question: q.question || "",
+        options: q.options || [],
+        correctAnswer: q.correctAnswer ?? 0,
+        explanation: q.explanation || "",
+        difficulty: q.difficulty || "medium",
+        topicId: topics[idx % topics.length]?.id,
+      }));
+    } catch (error) {
+      console.error("Error generating MCQ questions:", error);
+      throw new Error("Failed to generate MCQ questions");
+    }
+  }
 }
 
 export const aiService = new AIService();

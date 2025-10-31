@@ -9,6 +9,8 @@ import {
   studySessions,
   progress,
   qaHistory,
+  mcqQuestions,
+  mcqAttempts,
   type User,
   type InsertUser,
   type Document,
@@ -27,6 +29,10 @@ import {
   type InsertProgress,
   type QaHistory,
   type InsertQaHistory,
+  type McqQuestion,
+  type InsertMcqQuestion,
+  type McqAttempt,
+  type InsertMcqAttempt,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
@@ -78,6 +84,13 @@ export interface IStorage {
   // Q&A History methods
   getQaHistory(userId: string): Promise<QaHistory[]>;
   createQaHistory(qa: InsertQaHistory): Promise<QaHistory>;
+
+  // MCQ methods
+  getMcqQuestionsBySubject(userId: string, subjectId: string): Promise<McqQuestion[]>;
+  getMcqQuestions(userId: string): Promise<McqQuestion[]>;
+  createMcqQuestion(question: InsertMcqQuestion): Promise<McqQuestion>;
+  getMcqAttempts(userId: string): Promise<McqAttempt[]>;
+  createMcqAttempt(attempt: InsertMcqAttempt): Promise<McqAttempt>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -263,6 +276,34 @@ export class DatabaseStorage implements IStorage {
   async createQaHistory(qa: InsertQaHistory): Promise<QaHistory> {
     const [newQa] = await db.insert(qaHistory).values(qa).returning();
     return newQa;
+  }
+
+  // MCQ methods
+  async getMcqQuestionsBySubject(userId: string, subjectId: string): Promise<McqQuestion[]> {
+    return await db.select().from(mcqQuestions).where(
+      and(eq(mcqQuestions.userId, userId), eq(mcqQuestions.subjectId, subjectId))
+    ).orderBy(desc(mcqQuestions.generatedAt));
+  }
+
+  async getMcqQuestions(userId: string): Promise<McqQuestion[]> {
+    return await db.select().from(mcqQuestions).where(eq(mcqQuestions.userId, userId)).orderBy(desc(mcqQuestions.generatedAt));
+  }
+
+  async createMcqQuestion(question: InsertMcqQuestion): Promise<McqQuestion> {
+    const [newQuestion] = await db.insert(mcqQuestions).values({
+      ...question,
+      options: question.options as any, // Cast to handle JSONB array type
+    }).returning();
+    return newQuestion;
+  }
+
+  async getMcqAttempts(userId: string): Promise<McqAttempt[]> {
+    return await db.select().from(mcqAttempts).where(eq(mcqAttempts.userId, userId)).orderBy(desc(mcqAttempts.attemptedAt));
+  }
+
+  async createMcqAttempt(attempt: InsertMcqAttempt): Promise<McqAttempt> {
+    const [newAttempt] = await db.insert(mcqAttempts).values(attempt).returning();
+    return newAttempt;
   }
 }
 
