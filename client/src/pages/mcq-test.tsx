@@ -130,7 +130,7 @@ export default function McqTest() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between gap-4 flex-wrap">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2" data-testid="text-question-title">
                   <BookOpen className="h-5 w-5" />
                   {hasQuestions && completedQuestions < (questions?.length || 0)
                     ? `Pregunta ${currentQuestionIndex + 1} de ${questions?.length}`
@@ -138,7 +138,7 @@ export default function McqTest() {
                 </CardTitle>
                 {hasQuestions && (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-muted-foreground" data-testid="text-score-header">
                       Encerts: {score}/{completedQuestions}
                     </span>
                     <Button
@@ -187,10 +187,10 @@ export default function McqTest() {
                     <CheckCircle2 className="h-8 w-8 text-chart-3" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Test completat!</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-4" data-testid="text-final-score-detail">
                     Has respost {score} de {questions?.length} preguntes correctament
                   </p>
-                  <p className="text-2xl font-bold text-primary mb-6">
+                  <p className="text-2xl font-bold text-primary mb-6" data-testid="text-final-percentage">
                     {Math.round((score / (questions?.length || 1)) * 100)}%
                   </p>
                   <Button onClick={handleRestart} data-testid="button-restart-completed">
@@ -202,16 +202,19 @@ export default function McqTest() {
                 <div className="space-y-6">
                   <div>
                     <div className="flex items-center gap-2 mb-4">
-                      <Badge variant="secondary">
+                      <Badge variant="secondary" data-testid="badge-difficulty">
                         {currentQuestion.difficulty === "easy" ? "Fàcil" :
                          currentQuestion.difficulty === "hard" ? "Difícil" : "Mitjana"}
                       </Badge>
                       <Progress
                         value={(completedQuestions / (questions?.length || 1)) * 100}
                         className="flex-1"
+                        data-testid="progress-test"
                       />
                     </div>
-                    <h3 className="text-lg font-medium mb-4">{currentQuestion.question}</h3>
+                    <h3 className="text-lg font-medium mb-4" data-testid="text-question">
+                      {currentQuestion.question}
+                    </h3>
                   </div>
 
                   <div className="space-y-2">
@@ -264,10 +267,10 @@ export default function McqTest() {
                             <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                           )}
                           <div>
-                            <p className="font-medium mb-2">
+                            <p className="font-medium mb-2" data-testid="text-result-status">
                               {attemptResult.isCorrect ? "Correcte!" : "Incorrecte"}
                             </p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground" data-testid="text-explanation">
                               {attemptResult.explanation}
                             </p>
                           </div>
@@ -334,17 +337,19 @@ export default function McqTest() {
                 <div className="space-y-2 pt-4 border-t">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Progrés</span>
-                    <span className="font-medium">
+                    <span className="font-medium" data-testid="text-progress-sidebar">
                       {completedQuestions}/{questions?.length}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Encerts</span>
-                    <span className="font-medium text-chart-3">{score}</span>
+                    <span className="font-medium text-chart-3" data-testid="text-score-sidebar">
+                      {score}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Percentatge</span>
-                    <span className="font-medium">
+                    <span className="font-medium" data-testid="text-percentage-sidebar">
                       {completedQuestions > 0
                         ? Math.round((score / completedQuestions) * 100)
                         : 0}%
