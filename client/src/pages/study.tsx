@@ -6,11 +6,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Send, Sparkles, Loader2, FileText, Network, Table } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MessageSquare, Send, Sparkles, Loader2, FileText, Network, Table, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { QaHistory } from "@shared/schema";
+import { VisualSummaryDisplay } from "@/components/visual-summary-display";
+import type { QaHistory, Subject, VisualSummary } from "@shared/schema";
 
 interface QaMessage {
   role: "user" | "assistant";
@@ -20,6 +28,7 @@ interface QaMessage {
 
 export default function Study() {
   const [question, setQuestion] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
   const { toast } = useToast();
 
   const { data: history, isLoading: historyLoading } = useQuery<QaHistory[]>({
@@ -28,6 +37,36 @@ export default function Study() {
 
   const { data: suggestedData, isLoading: suggestionsLoading } = useQuery<{ questions: string[] }>({
     queryKey: ["/api/qa/suggested-questions"],
+  });
+
+  const { data: subjects, isLoading: subjectsLoading } = useQuery<Subject[]>({
+    queryKey: ["/api/subjects"],
+  });
+
+  const { data: visualSummaries, isLoading: summariesLoading } = useQuery<VisualSummary[]>({
+    queryKey: ["/api/visual-summaries"],
+  });
+
+  const generateSummaryMutation = useMutation({
+    mutationFn: async (data: { subjectId: string; summaryType: string }) => {
+      const response = await apiRequest("POST", "/api/visual-summaries/generate", data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/visual-summaries"] });
+      toast({
+        title: "Resum generat",
+        description: "El resum visual s'ha creat correctament",
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Generate summary error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "No s'ha pogut generar el resum. Assegura't que has pujat documents per a aquesta assignatura.",
+        variant: "destructive",
+      });
+    },
   });
 
   const askQuestionMutation = useMutation({
@@ -225,7 +264,22 @@ export default function Study() {
             <CardHeader>
               <CardTitle className="text-base">Resums Visuals</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <div className="flex gap-2">
+                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <SelectTrigger className="flex-1" data-testid="select-subject-visual">
+                    <SelectValue placeholder="Selecciona assignatura..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects?.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id} data-testid={`option-subject-${subject.id}`}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
               <Tabs defaultValue="flowcharts" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="flowcharts" className="text-xs" data-testid="tab-flowcharts">
@@ -241,20 +295,122 @@ export default function Study() {
                     Taules
                   </TabsTrigger>
                 </TabsList>
-                <TabsContent value="flowcharts" className="mt-4" data-testid="content-flowcharts">
-                  <div className="text-center py-8 text-sm text-muted-foreground">
-                    Els esquemes es generaran automàticament dels teus documents
-                  </div>
+                <TabsContent value="flowcharts" className="mt-4 space-y-4" data-testid="content-flowcharts">
+                  {selectedSubject && (
+                    <Button
+                      onClick={() => generateSummaryMutation.mutate({ subjectId: selectedSubject, summaryType: "flowchart" })}
+                      disabled={generateSummaryMutation.isPending}
+                      className="w-full"
+                      data-testid="button-generate-flowchart"
+                    >
+                      {generateSummaryMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 mr-2" />
+                      )}
+                      Generar Esquema
+                    </Button>
+                  )}
+                  {summariesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : visualSummaries?.filter(s => s.summaryType === "flowchart" && (!selectedSubject || s.subjectId === selectedSubject)).length ? (
+                    <ScrollArea className="h-[400px]">
+                      <div className="space-y-4">
+                        {visualSummaries
+                          .filter(s => s.summaryType === "flowchart" && (!selectedSubject || s.subjectId === selectedSubject))
+                          .map((summary) => (
+                            <div key={summary.id} className="space-y-2" data-testid={`flowchart-${summary.id}`}>
+                              <h4 className="text-sm font-medium">{summary.title}</h4>
+                              <VisualSummaryDisplay summary={summary} />
+                            </div>
+                          ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                      {selectedSubject ? "Clica 'Generar Esquema' per crear un diagrama" : "Selecciona una assignatura per començar"}
+                    </div>
+                  )}
                 </TabsContent>
-                <TabsContent value="maps" className="mt-4" data-testid="content-maps">
-                  <div className="text-center py-8 text-sm text-muted-foreground">
-                    Els mapes conceptuals es generaran automàticament
-                  </div>
+                <TabsContent value="maps" className="mt-4 space-y-4" data-testid="content-maps">
+                  {selectedSubject && (
+                    <Button
+                      onClick={() => generateSummaryMutation.mutate({ subjectId: selectedSubject, summaryType: "concept_map" })}
+                      disabled={generateSummaryMutation.isPending}
+                      className="w-full"
+                      data-testid="button-generate-concept-map"
+                    >
+                      {generateSummaryMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 mr-2" />
+                      )}
+                      Generar Mapa Conceptual
+                    </Button>
+                  )}
+                  {summariesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : visualSummaries?.filter(s => s.summaryType === "concept_map" && (!selectedSubject || s.subjectId === selectedSubject)).length ? (
+                    <ScrollArea className="h-[400px]">
+                      <div className="space-y-4">
+                        {visualSummaries
+                          .filter(s => s.summaryType === "concept_map" && (!selectedSubject || s.subjectId === selectedSubject))
+                          .map((summary) => (
+                            <div key={summary.id} className="space-y-2" data-testid={`concept-map-${summary.id}`}>
+                              <h4 className="text-sm font-medium">{summary.title}</h4>
+                              <VisualSummaryDisplay summary={summary} />
+                            </div>
+                          ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                      {selectedSubject ? "Clica 'Generar Mapa Conceptual' per crear un diagrama" : "Selecciona una assignatura per començar"}
+                    </div>
+                  )}
                 </TabsContent>
-                <TabsContent value="tables" className="mt-4" data-testid="content-tables">
-                  <div className="text-center py-8 text-sm text-muted-foreground">
-                    Les taules comparatives es generaran automàticament
-                  </div>
+                <TabsContent value="tables" className="mt-4 space-y-4" data-testid="content-tables">
+                  {selectedSubject && (
+                    <Button
+                      onClick={() => generateSummaryMutation.mutate({ subjectId: selectedSubject, summaryType: "comparison_table" })}
+                      disabled={generateSummaryMutation.isPending}
+                      className="w-full"
+                      data-testid="button-generate-comparison-table"
+                    >
+                      {generateSummaryMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Wand2 className="h-4 w-4 mr-2" />
+                      )}
+                      Generar Taula Comparativa
+                    </Button>
+                  )}
+                  {summariesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : visualSummaries?.filter(s => s.summaryType === "comparison_table" && (!selectedSubject || s.subjectId === selectedSubject)).length ? (
+                    <ScrollArea className="h-[400px]">
+                      <div className="space-y-4">
+                        {visualSummaries
+                          .filter(s => s.summaryType === "comparison_table" && (!selectedSubject || s.subjectId === selectedSubject))
+                          .map((summary) => (
+                            <div key={summary.id} className="space-y-2" data-testid={`comparison-table-${summary.id}`}>
+                              <h4 className="text-sm font-medium">{summary.title}</h4>
+                              <VisualSummaryDisplay summary={summary} />
+                            </div>
+                          ))}
+                      </div>
+                    </ScrollArea>
+                  ) : (
+                    <div className="text-center py-8 text-sm text-muted-foreground">
+                      {selectedSubject ? "Clica 'Generar Taula Comparativa' per crear una taula" : "Selecciona una assignatura per començar"}
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>

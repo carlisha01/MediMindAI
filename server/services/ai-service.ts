@@ -524,6 +524,140 @@ Retorna NOMÉS el JSON, sense text adicional.`;
       throw new Error("Failed to generate MCQ questions");
     }
   }
+
+  /**
+   * Generate visual summary (flowchart, concept map, or comparison table) from topics
+   * Returns Mermaid.js syntax for diagrams or Markdown for tables
+   */
+  async generateVisualSummary(
+    topics: Topic[],
+    summaryType: "flowchart" | "concept_map" | "comparison_table",
+    subjectName: string
+  ): Promise<{ title: string; content: string }> {
+    try {
+      if (!topics || topics.length === 0) {
+        throw new Error("No topics provided for visual summary generation");
+      }
+
+      // Use only included topics
+      const includedTopics = topics.filter(t => t.included);
+      
+      if (includedTopics.length === 0) {
+        throw new Error("No included topics available for visual summary");
+      }
+
+      // Build context from topics
+      const topicContent = includedTopics
+        .slice(0, 10) // Use up to 10 topics for summary generation
+        .map(t => `Tema: ${t.title}\nTipus: ${t.topicType}\nContingut: ${t.content.substring(0, 800)}\n`)
+        .join('\n---\n');
+
+      let prompt = "";
+      
+      if (summaryType === "flowchart") {
+        prompt = `Basant-te en aquests temes mèdics de ${subjectName}:
+
+${topicContent}
+
+Crea un diagrama de flux (flowchart) en sintaxi Mermaid.js que representi un procés clínic, protocol diagnòstic o algorisme de tractament relacionat amb aquests temes.
+
+Requisits:
+1. Utilitza la sintaxi Mermaid.js correcta (flowchart TD o flowchart LR)
+2. Inclou decisions clíniques (nodes de diamant)
+3. Mostra el flux lògic del procés
+4. Utilitza etiquetes en CATALÀ
+5. Fes-lo clar i fàcil de seguir
+6. Limita't a 8-12 nodes per mantenir la claredat
+
+Retorna NOMÉS el codi Mermaid (començant amb "flowchart TD" o "flowchart LR"), sense explicacions addicionals.`;
+      } else if (summaryType === "concept_map") {
+        prompt = `Basant-te en aquests temes mèdics de ${subjectName}:
+
+${topicContent}
+
+Crea un mapa conceptual en sintaxi Mermaid.js que mostri les relacions entre conceptes clau.
+
+Requisits:
+1. Utilitza la sintaxi Mermaid.js "graph TD" o "graph LR"
+2. Mostra relacions entre conceptes (causa/efecte, part de, tipus de, etc.)
+3. Utilitza etiquetes descriptives en les fletxes en CATALÀ
+4. Organitza els conceptes jeràrquicament
+5. Limita't a 8-15 nodes i connexions clares
+
+Retorna NOMÉS el codi Mermaid (començant amb "graph TD" o "graph LR"), sense explicacions addicionals.`;
+      } else {
+        // comparison_table
+        prompt = `Basant-te en aquests temes mèdics de ${subjectName}:
+
+${topicContent}
+
+Crea una taula comparativa en format Markdown que compari diferents aspectes, condicions, tractaments o conceptes relacionats.
+
+Requisits:
+1. Utilitza sintaxi Markdown per taules
+2. Inclou 3-5 columnes de comparació
+3. Inclou 3-6 files de dades
+4. Totes les etiquetes i contingut en CATALÀ
+5. Fes-la informativa i clínicament rellevant
+
+Exemple de format:
+| Criteri | Opció A | Opció B | Opció C |
+|---------|---------|---------|---------|
+| Aspecte 1 | Dada 1 | Dada 2 | Dada 3 |
+| Aspecte 2 | Dada 4 | Dada 5 | Dada 6 |
+
+Retorna NOMÉS la taula Markdown, sense text addicional.`;
+      }
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        max_completion_tokens: 1500,
+      });
+
+      const content = response.choices[0].message.content || "";
+      
+      console.log(`AI Visual Summary Response (${summaryType}):`, content.substring(0, 300));
+      
+      // Clean up the response (remove markdown code blocks if present)
+      let cleanedContent = content.trim();
+      cleanedContent = cleanedContent.replace(/^```mermaid\n/, '');
+      cleanedContent = cleanedContent.replace(/^```markdown\n/, '');
+      cleanedContent = cleanedContent.replace(/^```\n/, '');
+      cleanedContent = cleanedContent.replace(/\n```$/, '');
+      cleanedContent = cleanedContent.trim();
+
+      console.log(`Cleaned content length: ${cleanedContent.length}`);
+      
+      if (cleanedContent.length === 0) {
+        throw new Error(`AI returned empty ${summaryType} content. Please try again.`);
+      }
+
+      // Generate a meaningful title
+      const typeLabels = {
+        flowchart: "Esquema de Procés",
+        concept_map: "Mapa Conceptual",
+        comparison_table: "Taula Comparativa"
+      };
+      
+      const title = `${typeLabels[summaryType]}: ${subjectName}`;
+
+      console.log(`Generated visual summary: ${title}, content length: ${cleanedContent.length}`);
+
+      return {
+        title,
+        content: cleanedContent
+      };
+    } catch (error) {
+      console.error("Error generating visual summary:", error);
+      throw new Error("Failed to generate visual summary");
+    }
+  }
 }
 
 export const aiService = new AIService();

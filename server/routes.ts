@@ -46,7 +46,9 @@ const upload = multer({
     if (allowedTypes.includes(file.mimetype) || file.originalname.endsWith('.zip')) {
       cb(null, true);
     } else {
-      cb(new Error("Invalid file type. Only PDF, Word (.docx), CSV, and ZIP files are allowed."));
+      // Return false to reject file (multer will not save it)
+      // The upload route will handle the error response
+      cb(null, false);
     }
   },
 });
@@ -193,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = DEMO_USER_ID;
       
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
+        return res.status(400).json({ error: "Tipus d'arxiu no vàlid. Només s'accepten PDF, Word (.docx), CSV i ZIP." });
       }
 
       const file = req.file;
@@ -569,6 +571,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error recording MCQ attempt:", error);
       res.status(500).json({ error: "Failed to record MCQ attempt" });
+    }
+  });
+
+  // Visual summaries endpoints
+  app.post("/api/visual-summaries/generate", async (req, res) => {
+    try {
+      const userId = DEMO_USER_ID;
+      const { subjectId, summaryType } = req.body;
+
+      if (!subjectId || !summaryType) {
+        return res.status(400).json({ error: "Missing subjectId or summaryType" });
+      }
+
+      if (!["flowchart", "concept_map", "comparison_table"].includes(summaryType)) {
+        return res.status(400).json({ error: "Invalid summaryType. Must be flowchart, concept_map, or comparison_table" });
+      }
+
+      // Get subject
+      const subject = await storage.getSubject(subjectId);
+      if (!subject) {
+        return res.status(404).json({ error: "Subject not found" });
+      }
+
+      // Get topics for the subject
+      const subjectTopics = await storage.getTopicsBySubject(subjectId);
+      
+      console.log(`Visual summary generation: Found ${subjectTopics.length} topics for subject ${subject.name} (${subjectId})`);
+      
+      if (subjectTopics.length === 0) {
+        console.log(`No topics found for subject ${subject.name}. Checking all documents...`);
+        const allDocs = await storage.getDocuments(userId);
+        console.log(`User has ${allDocs.length} documents total`);
+        return res.status(400).json({ error: "No topics found for this subject. Upload documents first." });
+      }
+
+      // Generate visual summary using AI
+      const { title, content } = await aiService.generateVisualSummary(
+        subjectTopics,
+        summaryType as "flowchart" | "concept_map" | "comparison_table",
+        subject.name
+      );
+
+      // Save to database
+      const summary = await storage.createVisualSummary({
+        userId,
+        subjectId,
+        summaryType,
+        title,
+        content,
+      });
+
+      res.json(summary);
+    } catch (error) {
+      console.error("Error generating visual summary:", error);
+      res.status(500).json({ error: error instanceof Error ? error.message : "Failed to generate visual summary" });
+    }
+  });
+
+  app.get("/api/visual-summaries/subject/:subjectId", async (req, res) => {
+    try {
+      const { subjectId } = req.params;
+
+      if (!subjectId) {
+        return res.status(400).json({ error: "Missing subjectId" });
+      }
+
+      const summaries = await storage.getVisualSummariesBySubject(subjectId);
+      res.json(summaries);
+    } catch (error) {
+      console.error("Error fetching visual summaries:", error);
+      res.status(500).json({ error: "Failed to fetch visual summaries" });
+    }
+  });
+
+  app.get("/api/visual-summaries", async (req, res) => {
+    try {
+      const userId = DEMO_USER_ID;
+      const summaries = await storage.getVisualSummaries(userId);
+      res.json(summaries);
+    } catch (error) {
+      console.error("Error fetching visual summaries:", error);
+      res.status(500).json({ error: "Failed to fetch visual summaries" });
     }
   });
 

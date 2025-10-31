@@ -1,246 +1,49 @@
 # MedStudy - Intelligent Medical Study Assistant
 
-## Project Overview
-An intelligent web application for 4th-year medical students that automatically processes educational materials (PDFs, Word, CSV files, and ZIP archives), detects key topics, definitions, images, and clinical cases, and organizes them by medical subject. Single-user design focused on personal study workflow.
+## Overview
+MedStudy is an intelligent web application designed for 4th-year medical students. Its primary purpose is to streamline the study process by automatically processing educational materials (PDFs, Word, CSVs, and ZIP archives), extracting key medical topics, definitions, images, and clinical cases, and organizing them by medical subject. It also provides an adaptive AI-powered study assistant, visual summaries, and progress tracking, all within a single-user design focused on personal study workflows. The project aims to enhance medical education through AI-driven content organization and interactive learning.
 
-## Core Features
-- **Multi-format Document Processing**: Upload and process PDF, Word (.docx), CSV files, and ZIP archives containing multiple documents
-- **AI-Powered Content Extraction**: Automatically detect and extract topics, definitions, clinical cases, and medical terminology using OpenAI GPT-5
-- **Subject Organization**: Automatically classify content by medical specialty (Cardiology, Neurology, Pediatrics, etc.)
-- **Adaptive Study Assistant**: Interactive Q&A in Catalan (or Spanish) with contextual explanations powered by AI
-- **Visual Summaries**: Auto-generated flowcharts, concept maps, and comparative tables
-- **Progress Tracking**: Track study completion by topic and subject with detailed analytics
-- **Persistent Storage**: PostgreSQL database for all user data, documents, and progress
+## User Preferences
+I prefer detailed explanations.
+I want iterative development.
+Ask before making major changes.
+Do not make changes to the `shared/schema.ts` file.
+Do not make changes to the `client/src/index.css` file.
+Do not use emojis in the codebase; use `lucide-react` icons instead.
+All interactive elements must have `data-testid` attributes for automated testing.
 
-## Technology Stack
-### Frontend
-- React with TypeScript
-- Tailwind CSS + Shadcn UI components
-- Wouter for routing
-- TanStack Query for data fetching
-- Responsive design with dark mode support
+## System Architecture
+### UI/UX Decisions
+The application features a clean, professional interface suitable for medical education, inspired by Linear/Notion aesthetics. It prioritizes information density, efficient content layouts, and accessibility with WCAG-compliant color contrast and keyboard navigation. The design is responsive across desktop, tablet, and mobile devices, supporting a dark mode. The primary language is Catalan, with Spanish support.
 
-### Backend
-- Node.js with Express
-- PostgreSQL (Neon) database
-- Drizzle ORM for type-safe database operations
-- OpenAI API (GPT-5) for AI-powered features
-- Multer for file uploads
+### Technical Implementations
+**Frontend**: Built with React, TypeScript, Tailwind CSS, and Shadcn UI components. Wouter handles routing, and TanStack Query manages data fetching.
+**Backend**: Developed using Node.js with Express, connecting to a PostgreSQL database (Neon) via Drizzle ORM. OpenAI API (GPT-5) powers AI functionalities, and Multer handles file uploads.
+**File Processing**: Utilizes `pdf-parse` for PDFs, `Mammoth.js` for Word documents, `Papa Parse` for CSVs, and `adm-zip` for ZIP archives.
+**AI Features**: Leverages GPT-5 for content extraction (topics, definitions, clinical cases, terminology), subject classification, adaptive Q&A, and generation of visual summaries (flowcharts, concept maps, comparative tables) and MCQ tests. It incorporates Retrieval-Augmented Generation (RAG) for the AI study assistant, enhancing responses with document-specific context through text normalization, medical term stemming, keyword expansion, and cross-language matching.
+**Content Review System**: Includes a modal for reviewing AI-extracted topics, allowing users to edit titles, content, mark as included/excluded, set deep focus, and track confidence scores.
 
-### File Processing Libraries
-- pdf-parse for PDF text extraction
-- Mammoth.js for Word document processing
-- Papa Parse for CSV handling
-- adm-zip for ZIP archive extraction and batch processing
+### Feature Specifications
+- **Multi-format Document Processing**: Supports PDF, Word (.docx), CSV, and ZIP files for content ingestion.
+- **AI-Powered Content Extraction & Organization**: Automatically identifies and categorizes medical content by specialty.
+- **Adaptive Study Assistant**: Offers interactive Q&A in Catalan/Spanish, providing contextual explanations.
+- **Visual Summaries**: Generates flowcharts, concept maps, and comparison tables from study materials.
+- **Progress Tracking**: Monitors study completion by topic and subject with analytics.
+- **MCQ Test System**: Creates topic-based multiple-choice questions with real-time feedback and score tracking.
+- **Content Review System**: Allows users to review, edit, and manage AI-extracted topics with confidence scoring.
 
-## Project Structure
-```
-├── client/                 # Frontend React application
-│   ├── src/
-│   │   ├── components/    # Reusable UI components
-│   │   │   ├── ui/       # Shadcn UI primitives
-│   │   │   ├── app-sidebar.tsx
-│   │   │   └── theme-toggle.tsx
-│   │   ├── pages/        # Page components
-│   │   │   ├── dashboard.tsx
-│   │   │   ├── documents.tsx
-│   │   │   ├── subjects.tsx
-│   │   │   ├── study.tsx
-│   │   │   ├── progress.tsx
-│   │   │   └── not-found.tsx
-│   │   ├── lib/          # Utilities and helpers
-│   │   ├── App.tsx       # Main app with routing
-│   │   └── index.css     # Global styles
-├── server/                # Backend Node.js application
-│   ├── routes.ts         # API routes
-│   ├── storage.ts        # Database storage interface
-│   ├── db.ts            # Database connection
-│   └── services/        # Business logic (AI, file processing)
-├── shared/               # Shared code between frontend and backend
-│   └── schema.ts        # Database schema and TypeScript types
-└── design_guidelines.md  # UI/UX design specifications
-```
+### System Design Choices
+- **Database**: PostgreSQL with Drizzle ORM for type-safe operations.
+- **File Storage**: Uploaded files are stored in the `/uploads` directory.
+- **Scalability**: Designed as a single-user application but built with a modular structure that could support future multi-user authentication.
+- **Environment Management**: Utilizes environment variables for sensitive data like `DATABASE_URL` and `OPENAI_API_KEY`.
 
-## Database Schema
-The application uses PostgreSQL with the following main tables:
-- **users**: User accounts
-- **documents**: Uploaded files with metadata and processing status
-- **subjects**: Medical specialties (Cardiology, Neurology, etc.)
-- **topics**: Extracted key topics from documents
-- **extractedContent**: Images, tables, and diagrams from documents
-- **visualSummaries**: AI-generated flowcharts, concept maps, and tables
-- **studySessions**: Track study time per topic/subject
-- **progress**: Topic completion tracking
-- **qaHistory**: Q&A conversation history with the AI assistant
-
-## Key User Journeys
-1. **Document Upload → Processing → Content Extraction**
-   - Upload PDF/Word/CSV files or ZIP archives containing multiple documents
-   - AI processes and extracts topics, definitions, clinical cases
-   - Automatic subject classification
-   
-2. **Study with AI Assistant**
-   - Ask questions in Catalan about study materials
-   - Receive detailed, contextual explanations
-   - View suggested questions based on content
-
-3. **Progress Tracking**
-   - View overall completion percentage
-   - Track progress by subject and topic
-   - Monitor study streaks and total time
-
-4. **Visual Summaries**
-   - Access auto-generated flowcharts for processes
-   - Review concept maps for relationships
-   - Compare information in structured tables
-
-## Environment Variables
-- `DATABASE_URL`: PostgreSQL connection string (auto-configured by Replit)
-- `OPENAI_API_KEY`: OpenAI API key for AI features
-- `SESSION_SECRET`: Session encryption key
-
-## Design Philosophy
-- **Clinical Precision**: Clean, professional interface suitable for medical education
-- **Information Density**: Efficient layouts for content-heavy materials
-- **Accessibility**: WCAG-compliant color contrast and keyboard navigation
-- **Responsive**: Optimized for desktop, tablet, and mobile devices
-- **Catalan-First**: Primary language is Catalan, with Spanish support
-
-## MVP Status: ✅ COMPLETE
-**Completed Date**: October 30, 2025
-
-### Implementation Summary
-All core features have been successfully implemented and tested:
-
-**✅ Phase 1: Schema & Frontend**
-- Complete database schema with 9 tables (users, documents, subjects, topics, extractedContent, visualSummaries, studySessions, progress, qaHistory)
-- All frontend pages built with Shadcn UI components
-- Sidebar navigation with 5 main sections
-- Dashboard with real-time statistics
-- Document upload interface with file type filtering
-- Subject organization with progress indicators
-- AI study assistant chat interface (Catalan support)
-- Progress tracking dashboard
-- Dark mode with theme toggle
-- Responsive design following Linear/Notion aesthetic
-- All interactive elements have data-testid attributes for automated testing
-- No emoji usage (lucide-react icons only as per design guidelines)
-
-**✅ Phase 2: Backend Implementation**
-- Complete DatabaseStorage interface with all CRUD operations
-- API endpoints for dashboard stats, subjects, documents, Q&A, and progress
-- OpenAI GPT-5 integration for content extraction and Q&A
-- AI service for topic extraction and document classification
-- PostgreSQL database with Drizzle ORM
-- Seed script for demo user and initial medical subjects (6 specialties)
-- Document processing pipeline with real file parsing (PDF, Word, CSV)
-- File upload system with Multer saving files to /uploads directory
-- ZIP file extraction and batch processing support
-
-**✅ Phase 3: Integration & Polish**
-- Frontend connected to backend via TanStack Query
-- Real-time updates after mutations
-- Proper loading states and error handling
-- Architect-reviewed and approved
-- Subjects seeded successfully (Cardiologia, Neurologia, Pediatria, Cirurgia, Medicina Interna, Dermatologia)
-- Application running successfully on port 5000
-
-### Technical Quality
-- **Design Compliance**: Follows design_guidelines.md religiously
-- **Code Quality**: Architect-approved architecture and patterns
-- **Testability**: Complete data-testid coverage for automation
-- **Security**: API key management via environment variables
-- **Performance**: Optimized queries with proper indexing
-
-### Recent Updates
-
-**October 31, 2025: Dynamic Suggested Questions & MCQ Test System - IN PROGRESS**
-- Implemented dynamic suggested questions system:
-  - Backend endpoint `/api/qa/suggested-questions` generates questions from user's uploaded topics
-  - Falls back to default questions if no topics exist
-  - Study page updated to fetch and display dynamic questions with loading states
-- Created comprehensive MCQ test system:
-  - New database tables: mcqQuestions (with JSONB options array) and mcqAttempts
-  - Backend API endpoints for MCQ generation, retrieval, and answer submission
-  - AI service method `generateMCQQuestions()` supports both topic-based and general medical knowledge questions
-  - MCQ Test page with subject selection, question display, answer selection, immediate feedback
-  - Real-time score tracking in header and sidebar
-  - Progress tracking with difficulty badges and progress bars
-  - All interactive elements have comprehensive data-testid attributes for automated testing
-- Navigation: Added "Tests MCQ" to sidebar with ClipboardList icon
-- Current Status: Debugging MCQ generation persistence issue
-  - Generation succeeds but questions need to be verified in database
-  - Added comprehensive logging for AI response and database operations
-  - Working to ensure questions are properly saved and retrieved
-
-**October 31, 2025: RAG-Enhanced AI Study Assistant - COMPLETE**
-- Implemented Retrieval-Augmented Generation (RAG) for "top tier" study assistant
-- Advanced multilingual context retrieval in ai-service.ts:
-  - Text normalization with accent/diacritic removal (NFD normalization)
-  - Medical term stemming for Catalan/Spanish/English inflections
-  - Keyword expansion using medical synonym mapping (cardiovascular↔cardíaca↔cor↔cardiac)
-  - Cross-language matching: Catalan questions successfully match English topics
-  - Intelligent scoring: exact title word matches (20pts), title substring (10pts), content word matches (5pts)
-  - Deep focus topic boost (1.5x multiplier)
-  - Returns top 5 most relevant topics
-- Enhanced `answerQuestion()` to integrate document content with general medical knowledge:
-  - Retrieves all user topics via optimized `getAllTopicsByUser()` (SQL JOIN, no full-table scans)
-  - Builds context text with topic type labels (Definició, Cas Clínic, Concepte, Procediment)
-  - Instructs GPT-5 to prioritize document-specific content, then complement with general knowledge
-  - Falls back gracefully to general medical knowledge when no relevant docs found
-- Backend route `/api/qa/ask` passes user topics and tracks related topic IDs in Q&A history
-- Architect-reviewed and approved with cross-language matching improvements
-- Tested and confirmed: AI references uploaded content when available, provides comprehensive medical explanations
-- Response quality: detailed, structured (sections), educational tone, full Catalan/Spanish support
-
-**October 31, 2025: Content Review System - COMPLETE**
-- Added comprehensive content review modal for AI-extracted topics
-- Database schema updated with confidence scoring and user correction tracking:
-  - `confidence`: integer (0-100) for AI confidence scores
-  - `included`: boolean (default true) for user inclusion/exclusion decisions
-  - `deepFocus`: boolean (default false) for marking important topics
-  - `correctedByUser`: boolean (default false) for tracking edits
-- ContentReviewModal component with full functionality:
-  - Inline editing of topic titles and content
-  - Include/exclude checkboxes with persistence
-  - Deep focus star toggles for priority marking
-  - Confidence badge display with color coding
-  - Filter for low-confidence topics (<80%)
-  - Bulk operations (select all deep focus)
-- Backend API endpoints:
-  - GET /api/documents/:id/topics - fetch all topics with review metadata
-  - POST /api/documents/:id/confirm - save user edits and decisions
-- State management improvements:
-  - Modal resets when switching documents
-  - All user decisions (edits, exclusions, deep focus) persist across reopens
-  - Excluded topics properly saved and loaded
-- Fixed PDF processing to use pdf-parse v2 API (PDFParse class)
-- Architect-approved implementation with no critical issues
-
-**October 30, 2025: File Upload & Processing System**
-- Real file upload with Multer to /uploads directory
-- PDF parsing with pdf-parse extracting actual text content
-- Word document parsing with Mammoth.js extracting text
-- CSV parsing with PapaParse converting tabular data to text
-- ZIP file support: upload archives containing multiple documents, auto-extracts and processes each file individually
-- OpenAI GPT-5 processes extracted text to identify medical topics, definitions, clinical cases
-- Topics automatically linked to appropriate medical subjects
-- Demo user ('demo-user-001') seeded automatically on server start
-- Q&A functionality tested and working with OpenAI API (response time ~48s for complex medical questions)
-
-### Known Limitations
-- Image and table extraction from documents not implemented (text-only extraction)
-- Visual summaries (flowcharts, concept maps, tables) are placeholders
-- Study streak calculation uses mock data
-- Single-user application (no authentication system)
-
-### Next Steps (Post-MVP Enhancements)
-1. Add image and table extraction from PDFs and Word documents
-2. Generate actual visual summaries from extracted content using AI
-3. Implement real study streak algorithm based on consecutive sessions
-4. Add spaced repetition system with flashcards
-5. Add export functionality (PDF/PNG for visual summaries)
-6. Implement advanced search across documents and content
-7. Performance optimization for large documents
-8. Add user authentication for multi-user support (if needed in future)
-9. Implement collaborative features (sharing notes, study materials)
+## External Dependencies
+- **OpenAI API (GPT-5)**: For all AI-powered features, including content extraction, subject classification, Q&A, visual summary generation, and MCQ creation.
+- **PostgreSQL (Neon)**: The primary database for persistent storage of user data, documents, topics, and study progress.
+- **pdf-parse**: Library for extracting text content from PDF documents.
+- **Mammoth.js**: Library for processing and extracting text from Word (.docx) documents.
+- **Papa Parse**: Library for parsing CSV files.
+- **adm-zip**: Library for extracting and processing content from ZIP archives.
+- **Mermaid.js**: For rendering AI-generated flowcharts and concept maps on the frontend.
+- **react-markdown** and **remark-gfm**: For rendering Markdown content, including comparison tables, on the frontend.
