@@ -11,12 +11,12 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
 });
 
-// Documents table - uploaded files (PDF, Word, PowerPoint, CSV)
+// Documents table - uploaded files (PDF, Word, CSV)
 export const documents = pgTable("documents", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   filename: text("filename").notNull(),
-  fileType: text("file_type").notNull(), // pdf, docx, pptx, csv
+  fileType: text("file_type").notNull(), // pdf, docx, csv
   fileSize: integer("file_size").notNull(), // in bytes
   filePath: text("file_path").notNull(), // storage path
   uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),

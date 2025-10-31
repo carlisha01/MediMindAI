@@ -85,7 +85,7 @@
 **Upload Zone**:
 - Large drag-and-drop area (min-h-64) with dashed border
 - Multi-file support indicator
-- Supported formats clearly listed (PDF, DOCX, PPTX, CSV)
+- Supported formats clearly listed (PDF, DOCX, CSV, ZIP)
 - Upload button as fallback
 
 **Document Library**:

@@ -1,10 +1,10 @@
 # MedStudy - Intelligent Medical Study Assistant
 
 ## Project Overview
-An intelligent SaaS web application for 4th-year medical students that automatically processes educational materials (PDFs, Word, PowerPoint, CSV files), detects key topics, definitions, images, and clinical cases, and organizes them by medical subject.
+An intelligent web application for 4th-year medical students that automatically processes educational materials (PDFs, Word, CSV files, and ZIP archives), detects key topics, definitions, images, and clinical cases, and organizes them by medical subject. Single-user design focused on personal study workflow.
 
 ## Core Features
-- **Multi-format Document Processing**: Upload and process PDF, Word (.docx), PowerPoint (.pptx), and CSV files
+- **Multi-format Document Processing**: Upload and process PDF, Word (.docx), CSV files, and ZIP archives containing multiple documents
 - **AI-Powered Content Extraction**: Automatically detect and extract topics, definitions, clinical cases, and medical terminology using OpenAI GPT-5
 - **Subject Organization**: Automatically classify content by medical specialty (Cardiology, Neurology, Pediatrics, etc.)
 - **Adaptive Study Assistant**: Interactive Q&A in Catalan (or Spanish) with contextual explanations powered by AI
@@ -28,11 +28,10 @@ An intelligent SaaS web application for 4th-year medical students that automatic
 - Multer for file uploads
 
 ### File Processing Libraries
-- PDF.js for PDF text extraction
+- pdf-parse for PDF text extraction
 - Mammoth.js for Word document processing
-- PptxGenJS or similar for PowerPoint processing
 - Papa Parse for CSV handling
-- Sharp for image processing
+- adm-zip for ZIP archive extraction and batch processing
 
 ## Project Structure
 ```
@@ -76,7 +75,7 @@ The application uses PostgreSQL with the following main tables:
 
 ## Key User Journeys
 1. **Document Upload → Processing → Content Extraction**
-   - Upload PDF/Word/PowerPoint/CSV files
+   - Upload PDF/Word/CSV files or ZIP archives containing multiple documents
    - AI processes and extracts topics, definitions, clinical cases
    - Automatic subject classification
    
@@ -166,19 +165,18 @@ All core features have been successfully implemented and tested:
 - Q&A functionality tested and working with OpenAI API (response time ~48s for complex medical questions)
 
 ### Known Limitations
-- PowerPoint (.pptx) processing is placeholder (recommends PDF conversion)
 - Image and table extraction from documents not implemented (text-only extraction)
 - Visual summaries (flowcharts, concept maps, tables) are placeholders
 - Study streak calculation uses mock data
+- Single-user application (no authentication system)
 
 ### Next Steps (Post-MVP Enhancements)
-1. Implement PowerPoint text extraction (or remove from supported formats)
-2. Add image and table extraction from PDFs and Word documents
-3. Generate actual visual summaries from extracted content using AI
-4. Implement real study streak algorithm based on consecutive sessions
-5. Add user authentication and multi-user support
-6. Add spaced repetition system with flashcards
-7. Implement collaborative features (sharing notes, study materials)
-8. Add export functionality (PDF/PNG for visual summaries)
-9. Implement advanced search across documents and content
-10. Performance optimization for large documents
+1. Add image and table extraction from PDFs and Word documents
+2. Generate actual visual summaries from extracted content using AI
+3. Implement real study streak algorithm based on consecutive sessions
+4. Add spaced repetition system with flashcards
+5. Add export functionality (PDF/PNG for visual summaries)
+6. Implement advanced search across documents and content
+7. Performance optimization for large documents
+8. Add user authentication for multi-user support (if needed in future)
+9. Implement collaborative features (sharing notes, study materials)

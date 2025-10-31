@@ -276,14 +276,12 @@ export default function Documents() {
                       "flex h-10 w-10 items-center justify-center rounded-lg",
                       doc.fileType === "pdf" && "bg-destructive/10",
                       doc.fileType === "docx" && "bg-primary/10",
-                      doc.fileType === "pptx" && "bg-chart-5/10",
                       doc.fileType === "csv" && "bg-chart-3/10"
                     )}>
                       <Icon className={cn(
                         "h-5 w-5",
                         doc.fileType === "pdf" && "text-destructive",
                         doc.fileType === "docx" && "text-primary",
-                        doc.fileType === "pptx" && "text-chart-5",
                         doc.fileType === "csv" && "text-chart-3"
                       )} />
                     </div>
