@@ -52,6 +52,7 @@ export interface IStorage {
   // Topic methods
   getTopicsByDocument(documentId: string): Promise<Topic[]>;
   getTopicsBySubject(subjectId: string): Promise<Topic[]>;
+  getAllTopicsByUser(userId: string): Promise<Topic[]>;
   createTopic(topic: InsertTopic): Promise<Topic>;
   updateTopic(id: string, updates: Partial<InsertTopic>): Promise<Topic>;
 
@@ -141,6 +142,29 @@ export class DatabaseStorage implements IStorage {
 
   async getTopicsBySubject(subjectId: string): Promise<Topic[]> {
     return await db.select().from(topics).where(eq(topics.subjectId, subjectId));
+  }
+
+  async getAllTopicsByUser(userId: string): Promise<Topic[]> {
+    // Optimized query: join topics with documents to filter by userId at SQL layer
+    const userTopics = await db
+      .select({
+        id: topics.id,
+        documentId: topics.documentId,
+        subjectId: topics.subjectId,
+        title: topics.title,
+        content: topics.content,
+        topicType: topics.topicType,
+        confidence: topics.confidence,
+        correctedByUser: topics.correctedByUser,
+        deepFocus: topics.deepFocus,
+        included: topics.included,
+        extractedAt: topics.extractedAt,
+      })
+      .from(topics)
+      .innerJoin(documents, eq(topics.documentId, documents.id))
+      .where(eq(documents.userId, userId));
+    
+    return userTopics as Topic[];
   }
 
   async createTopic(topic: InsertTopic): Promise<Topic> {

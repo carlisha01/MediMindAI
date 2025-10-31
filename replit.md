@@ -154,6 +154,26 @@ All core features have been successfully implemented and tested:
 
 ### Recent Updates
 
+**October 31, 2025: RAG-Enhanced AI Study Assistant - COMPLETE**
+- Implemented Retrieval-Augmented Generation (RAG) for "top tier" study assistant
+- Advanced multilingual context retrieval in ai-service.ts:
+  - Text normalization with accent/diacritic removal (NFD normalization)
+  - Medical term stemming for Catalan/Spanish/English inflections
+  - Keyword expansion using medical synonym mapping (cardiovascular↔cardíaca↔cor↔cardiac)
+  - Cross-language matching: Catalan questions successfully match English topics
+  - Intelligent scoring: exact title word matches (20pts), title substring (10pts), content word matches (5pts)
+  - Deep focus topic boost (1.5x multiplier)
+  - Returns top 5 most relevant topics
+- Enhanced `answerQuestion()` to integrate document content with general medical knowledge:
+  - Retrieves all user topics via optimized `getAllTopicsByUser()` (SQL JOIN, no full-table scans)
+  - Builds context text with topic type labels (Definició, Cas Clínic, Concepte, Procediment)
+  - Instructs GPT-5 to prioritize document-specific content, then complement with general knowledge
+  - Falls back gracefully to general medical knowledge when no relevant docs found
+- Backend route `/api/qa/ask` passes user topics and tracks related topic IDs in Q&A history
+- Architect-reviewed and approved with cross-language matching improvements
+- Tested and confirmed: AI references uploaded content when available, provides comprehensive medical explanations
+- Response quality: detailed, structured (sections), educational tone, full Catalan/Spanish support
+
 **October 31, 2025: Content Review System - COMPLETE**
 - Added comprehensive content review modal for AI-extracted topics
 - Database schema updated with confidence scoring and user correction tracking:

@@ -422,8 +422,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing question or language" });
       }
 
-      // Get AI answer
-      const response = await aiService.answerQuestion(question, language);
+      // Get all user's topics for RAG context
+      const userTopics = await storage.getAllTopicsByUser(userId);
+
+      // Get AI answer with document context
+      const response = await aiService.answerQuestion(question, language, userTopics);
+
+      // Determine topic/subject IDs from related topics if available
+      let topicId: string | null = null;
+      let subjectId: string | null = null;
+      if (response.relatedTopics && response.relatedTopics.length > 0) {
+        topicId = response.relatedTopics[0]; // Use first related topic
+        const firstTopic = userTopics.find(t => t.id === topicId);
+        if (firstTopic?.subjectId) {
+          subjectId = firstTopic.subjectId;
+        }
+      }
 
       // Save to history
       const qaRecord = await storage.createQaHistory({
@@ -431,8 +445,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         question,
         answer: response.answer,
         language,
-        topicId: null,
-        subjectId: null,
+        topicId,
+        subjectId,
       });
 
       res.json(qaRecord);
