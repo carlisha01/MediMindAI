@@ -11,6 +11,7 @@ import Documents from "@/pages/documents";
 import Subjects from "@/pages/subjects";
 import Study from "@/pages/study";
 import ProgressPage from "@/pages/progress";
+import McqTest from "@/pages/mcq-test";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/documents" component={Documents} />
       <Route path="/subjects" component={Subjects} />
       <Route path="/study" component={Study} />
+      <Route path="/mcq-test" component={McqTest} />
       <Route path="/progress" component={ProgressPage} />
       <Route component={NotFound} />
     </Switch>

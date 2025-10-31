@@ -1,4 +1,4 @@
-import { Home, FileText, BookOpen, MessageSquare, TrendingUp, Settings } from "lucide-react";
+import { Home, FileText, BookOpen, MessageSquare, TrendingUp, ClipboardList } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -34,6 +34,11 @@ const menuItems = [
     title: "Assistent IA",
     url: "/study",
     icon: MessageSquare,
+  },
+  {
+    title: "Tests MCQ",
+    url: "/mcq-test",
+    icon: ClipboardList,
   },
   {
     title: "Progrés",

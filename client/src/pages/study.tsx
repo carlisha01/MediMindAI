@@ -26,6 +26,10 @@ export default function Study() {
     queryKey: ["/api/qa/history"],
   });
 
+  const { data: suggestedData, isLoading: suggestionsLoading } = useQuery<{ questions: string[] }>({
+    queryKey: ["/api/qa/suggested-questions"],
+  });
+
   const askQuestionMutation = useMutation({
     mutationFn: async (data: { question: string; language: string }) => {
       const response = await apiRequest("POST", "/api/qa/ask", data);
@@ -55,12 +59,7 @@ export default function Study() {
     });
   };
 
-  const suggestedQuestions = [
-    "Explica'm les causes principals de la insuficiència cardíaca",
-    "Quins són els símptomes de la meningitis?",
-    "Com es diagnostica la diabetis tipus 2?",
-    "Diferències entre angina de pit i infart de miocardi",
-  ];
+  const suggestedQuestions = suggestedData?.questions || [];
 
   const messages: QaMessage[] = history?.map((item) => [
     {
@@ -197,18 +196,28 @@ export default function Study() {
               <CardTitle className="text-base">Preguntes Suggerides</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {suggestedQuestions.map((q, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  className="w-full justify-start text-left h-auto py-3 px-4 whitespace-normal"
-                  onClick={() => setQuestion(q)}
-                  data-testid={`button-suggested-${index}`}
-                >
-                  <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />
-                  <span className="text-sm">{q}</span>
-                </Button>
-              ))}
+              {suggestionsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : suggestedQuestions.length > 0 ? (
+                suggestedQuestions.map((q, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-3 px-4 whitespace-normal"
+                    onClick={() => setQuestion(q)}
+                    data-testid={`button-suggested-${index}`}
+                  >
+                    <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="text-sm">{q}</span>
+                  </Button>
+                ))
+              ) : (
+                <div className="text-center py-4 text-sm text-muted-foreground">
+                  Puja documents per obtenir preguntes personalitzades
+                </div>
+              )}
             </CardContent>
           </Card>
 
