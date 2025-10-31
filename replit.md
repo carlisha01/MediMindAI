@@ -152,8 +152,33 @@ All core features have been successfully implemented and tested:
 - **Security**: API key management via environment variables
 - **Performance**: Optimized queries with proper indexing
 
-### Recent Updates (October 30, 2025)
-**File Upload & Processing System - FULLY OPERATIONAL**
+### Recent Updates
+
+**October 31, 2025: Content Review System - COMPLETE**
+- Added comprehensive content review modal for AI-extracted topics
+- Database schema updated with confidence scoring and user correction tracking:
+  - `confidence`: integer (0-100) for AI confidence scores
+  - `included`: boolean (default true) for user inclusion/exclusion decisions
+  - `deepFocus`: boolean (default false) for marking important topics
+  - `correctedByUser`: boolean (default false) for tracking edits
+- ContentReviewModal component with full functionality:
+  - Inline editing of topic titles and content
+  - Include/exclude checkboxes with persistence
+  - Deep focus star toggles for priority marking
+  - Confidence badge display with color coding
+  - Filter for low-confidence topics (<80%)
+  - Bulk operations (select all deep focus)
+- Backend API endpoints:
+  - GET /api/documents/:id/topics - fetch all topics with review metadata
+  - POST /api/documents/:id/confirm - save user edits and decisions
+- State management improvements:
+  - Modal resets when switching documents
+  - All user decisions (edits, exclusions, deep focus) persist across reopens
+  - Excluded topics properly saved and loaded
+- Fixed PDF processing to use pdf-parse v2 API (PDFParse class)
+- Architect-approved implementation with no critical issues
+
+**October 30, 2025: File Upload & Processing System**
 - Real file upload with Multer to /uploads directory
 - PDF parsing with pdf-parse extracting actual text content
 - Word document parsing with Mammoth.js extracting text

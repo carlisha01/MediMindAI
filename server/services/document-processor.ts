@@ -1,4 +1,4 @@
-import * as pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import mammoth from "mammoth";
 import Papa from "papaparse";
 import fs from "fs/promises";
@@ -18,13 +18,14 @@ class DocumentProcessor {
   async processPDF(filePath: string): Promise<ProcessedDocument> {
     try {
       const dataBuffer = await fs.readFile(filePath);
-      const data = await (pdfParse as any).default(dataBuffer);
+      const parser = new PDFParse({ data: dataBuffer });
+      const result = await parser.getText();
       
       return {
-        text: data.text,
+        text: result.text,
         metadata: {
-          pageCount: data.numpages,
-          wordCount: data.text.split(/\s+/).length,
+          pageCount: result.pages.length,
+          wordCount: result.text.split(/\s+/).length,
         },
       };
     } catch (error) {
