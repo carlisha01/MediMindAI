@@ -41,6 +41,10 @@ export const topics = pgTable("topics", {
   title: text("title").notNull(),
   content: text("content").notNull(),
   topicType: text("topic_type").notNull(), // definition, clinical_case, concept, procedure
+  confidence: integer("confidence").default(100), // 0-100 AI confidence score
+  correctedByUser: boolean("corrected_by_user").default(false),
+  deepFocus: boolean("deep_focus").default(false), // user-marked as high priority
+  included: boolean("included").default(true), // user decided to include/exclude
   extractedAt: timestamp("extracted_at").notNull().defaultNow(),
 });
 

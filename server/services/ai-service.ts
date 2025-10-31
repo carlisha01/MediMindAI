@@ -8,6 +8,7 @@ export interface ExtractedTopics {
     title: string;
     content: string;
     topicType: "definition" | "clinical_case" | "concept" | "procedure";
+    confidence: number; // 0-100 confidence score
   }>;
   suggestedSubject: string;
 }
@@ -37,11 +38,17 @@ Respond with JSON in this exact format:
     {
       "title": "Topic name",
       "content": "Detailed explanation or description",
-      "topicType": "definition" | "clinical_case" | "concept" | "procedure"
+      "topicType": "definition" | "clinical_case" | "concept" | "procedure",
+      "confidence": 0-100 (integer score indicating your confidence in this extraction)
     }
   ],
   "suggestedSubject": "Medical specialty name"
-}`;
+}
+
+For each topic, provide a confidence score (0-100) based on:
+- Clarity of the content
+- Medical accuracy and completeness
+- Proper categorization as definition/case/concept/procedure`;
 
       const response = await openai.chat.completions.create({
         model: "gpt-5",
@@ -69,6 +76,7 @@ Respond with JSON in this exact format:
           title: `Content from ${filename}`,
           content: text.substring(0, 500),
           topicType: "concept",
+          confidence: 50, // Low confidence for fallback
         }],
         suggestedSubject: "General Medicine",
       };

@@ -306,6 +306,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get topics for a document (for review modal)
+  app.get("/api/documents/:id/topics", async (req, res) => {
+    try {
+      const documentId = req.params.id;
+      const topicsData = await storage.getTopicsByDocument(documentId);
+      res.json(topicsData);
+    } catch (error) {
+      console.error("Error fetching document topics:", error);
+      res.status(500).json({ error: "Failed to fetch document topics" });
+    }
+  });
+
+  // Confirm and update topics after user review
+  app.post("/api/documents/:id/confirm", async (req, res) => {
+    try {
+      const documentId = req.params.id;
+      const { topics } = req.body;
+
+      if (!topics || !Array.isArray(topics)) {
+        return res.status(400).json({ error: "Invalid topics data" });
+      }
+
+      // Update each topic with user corrections and inclusion decision
+      const updatedTopics = [];
+      for (const topic of topics) {
+        if (topic.id) {
+          // Update existing topic
+          const updated = await storage.updateTopic(topic.id, {
+            title: topic.title,
+            content: topic.content,
+            confidence: topic.confidence,
+            correctedByUser: topic.correctedByUser,
+            deepFocus: topic.deepFocus,
+            included: topic.include, // Save user's inclusion/exclusion decision
+          });
+          updatedTopics.push(updated);
+        }
+      }
+
+      res.json({ 
+        message: "Topics confirmed and updated",
+        topics: updatedTopics 
+      });
+    } catch (error) {
+      console.error("Error confirming document topics:", error);
+      res.status(500).json({ error: "Failed to confirm document topics" });
+    }
+  });
+
   // Subjects endpoints
   app.get("/api/subjects", async (req, res) => {
     try {
@@ -513,6 +562,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: topicData.title,
           content: topicData.content,
           topicType: topicData.topicType,
+          confidence: topicData.confidence || 100,
         });
       }
 

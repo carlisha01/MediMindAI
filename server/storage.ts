@@ -53,6 +53,7 @@ export interface IStorage {
   getTopicsByDocument(documentId: string): Promise<Topic[]>;
   getTopicsBySubject(subjectId: string): Promise<Topic[]>;
   createTopic(topic: InsertTopic): Promise<Topic>;
+  updateTopic(id: string, updates: Partial<InsertTopic>): Promise<Topic>;
 
   // Extracted content methods
   getExtractedContent(documentId: string): Promise<ExtractedContent[]>;
@@ -145,6 +146,11 @@ export class DatabaseStorage implements IStorage {
   async createTopic(topic: InsertTopic): Promise<Topic> {
     const [newTopic] = await db.insert(topics).values(topic).returning();
     return newTopic;
+  }
+
+  async updateTopic(id: string, updates: Partial<InsertTopic>): Promise<Topic> {
+    const [updatedTopic] = await db.update(topics).set(updates).where(eq(topics.id, id)).returning();
+    return updatedTopic;
   }
 
   // Extracted content methods

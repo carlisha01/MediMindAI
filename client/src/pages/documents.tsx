@@ -11,18 +11,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, FileText, FileSpreadsheet, Search, Filter, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Upload, FileText, FileSpreadsheet, Search, Filter, Loader2, CheckCircle2, XCircle, Clock, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
-import type { Document, Subject } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { Document, Subject, Topic } from "@shared/schema";
+import { ContentReviewModal } from "@/components/content-review-modal";
+
+interface TopicReviewItem {
+  id?: string;
+  title: string;
+  content: string;
+  topicType: "definition" | "clinical_case" | "concept" | "procedure";
+  confidence: number;
+  include: boolean;
+  deepFocus: boolean;
+  correctedByUser: boolean;
+}
 
 export default function Documents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
   const [uploading, setUploading] = useState(false);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewingDocument, setReviewingDocument] = useState<{ id: string; name: string } | null>(null);
+  const [reviewTopics, setReviewTopics] = useState<TopicReviewItem[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -88,8 +103,9 @@ export default function Documents() {
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("ca-ES", {
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString("ca-ES", {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -144,6 +160,74 @@ export default function Documents() {
     
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleReviewDocument = async (documentId: string, documentName: string) => {
+    try {
+      const response = await fetch(`/api/documents/${documentId}/topics`);
+      if (!response.ok) throw new Error("Failed to fetch topics");
+      
+      const topics: Topic[] = await response.json();
+      
+      // Transform topics to review format
+      const reviewItems: TopicReviewItem[] = topics.map(t => ({
+        id: t.id,
+        title: t.title,
+        content: t.content,
+        topicType: t.topicType as any,
+        confidence: t.confidence || 100,
+        include: t.included ?? true, // Use persisted included value, default to true
+        deepFocus: t.deepFocus || false,
+        correctedByUser: t.correctedByUser || false,
+      }));
+      
+      setReviewTopics(reviewItems);
+      setReviewingDocument({ id: documentId, name: documentName });
+      setReviewModalOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No s'han pogut carregar els temes per revisar.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmMutation = useMutation({
+    mutationFn: async (data: { documentId: string; topics: TopicReviewItem[] }) => {
+      const response = await apiRequest(
+        "POST",
+        `/api/documents/${data.documentId}/confirm`,
+        { topics: data.topics }
+      );
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      toast({
+        title: "Canvis desats",
+        description: "Els temes han estat actualitzats correctament.",
+      });
+      setReviewModalOpen(false);
+      setReviewingDocument(null);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "No s'han pogut desar els canvis.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleConfirmReview = (topics: TopicReviewItem[]) => {
+    if (reviewingDocument) {
+      confirmMutation.mutate({
+        documentId: reviewingDocument.id,
+        topics,
+      });
     }
   };
 
@@ -301,9 +385,17 @@ export default function Documents() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(doc.processingStatus)}
-                      <Button variant="ghost" size="sm" data-testid={`button-view-${doc.id}`}>
-                        Veure
-                      </Button>
+                      {doc.processingStatus === "completed" && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleReviewDocument(doc.id, doc.filename)}
+                          data-testid={`button-review-${doc.id}`}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Revisar
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );
@@ -324,6 +416,22 @@ export default function Documents() {
           )}
         </CardContent>
       </Card>
+
+      {/* Content Review Modal */}
+      {reviewingDocument && (
+        <ContentReviewModal
+          open={reviewModalOpen}
+          onOpenChange={setReviewModalOpen}
+          topics={reviewTopics}
+          documentId={reviewingDocument.id}
+          documentName={reviewingDocument.name}
+          onConfirm={handleConfirmReview}
+          onCancel={() => {
+            setReviewModalOpen(false);
+            setReviewingDocument(null);
+          }}
+        />
+      )}
     </div>
   );
 }
