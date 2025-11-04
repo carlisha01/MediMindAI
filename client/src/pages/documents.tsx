@@ -256,7 +256,7 @@ export default function Documents() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Puja els teus documents</h3>
             <p className="text-sm text-muted-foreground mb-4 max-w-md">
-              Suportem PDF, Word (.docx), CSV i ZIP (màx. 100 MB). Arrrossega els arxius aquí o fes clic per seleccionar.
+              Suportem PDF, Word (.docx), CSV i ZIP (màx. 250 MB). Arrrossega els arxius aquí o fes clic per seleccionar.
             </p>
             <input
               ref={fileInputRef}

@@ -15,7 +15,7 @@ import AdmZip from "adm-zip";
 const DEMO_USER_ID = "demo-user-001";
 
 // File upload configuration
-const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
+const MAX_FILE_SIZE = 250 * 1024 * 1024; // 250MB limit
 const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / (1024 * 1024)); // Convert to MB for display
 
 // Configure multer for file uploads
