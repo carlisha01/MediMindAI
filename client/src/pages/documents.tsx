@@ -123,7 +123,8 @@ export default function Documents() {
       });
       
       if (!response.ok) {
-        throw new Error("Failed to upload document");
+        const errorData = await response.json().catch(() => ({ error: "Failed to upload document" }));
+        throw new Error(errorData.error || "Failed to upload document");
       }
       
       return response.json();
@@ -138,10 +139,10 @@ export default function Documents() {
       });
       setUploading(false);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "No s'ha pogut pujar el document. Torna-ho a provar.",
+        description: error.message || "No s'ha pogut pujar el document. Torna-ho a provar.",
         variant: "destructive",
       });
       setUploading(false);
@@ -255,7 +256,7 @@ export default function Documents() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Puja els teus documents</h3>
             <p className="text-sm text-muted-foreground mb-4 max-w-md">
-              Suportem PDF, Word (.docx), CSV i ZIP. Arrrossega els arxius aquí o fes clic per seleccionar.
+              Suportem PDF, Word (.docx), CSV i ZIP (màx. 100 MB). Arrrossega els arxius aquí o fes clic per seleccionar.
             </p>
             <input
               ref={fileInputRef}

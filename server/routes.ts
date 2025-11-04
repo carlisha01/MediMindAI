@@ -32,7 +32,7 @@ const upload = multer({
     },
   }),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fileSize: 100 * 1024 * 1024, // 100MB limit
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -190,12 +190,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/documents/upload", upload.single("file"), async (req, res) => {
+  app.post("/api/documents/upload", (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({ 
+            error: "El fitxer és massa gran. La mida màxima és de 100 MB.",
+            errorCode: "FILE_TOO_LARGE",
+            maxSize: "100 MB"
+          });
+        }
+        return res.status(400).json({ 
+          error: "Error en pujar el fitxer. Si us plau, torna-ho a provar.",
+          errorCode: "UPLOAD_ERROR"
+        });
+      }
+      next();
+    });
+  }, async (req, res) => {
     try {
       const userId = DEMO_USER_ID;
       
       if (!req.file) {
-        return res.status(400).json({ error: "Tipus d'arxiu no vàlid. Només s'accepten PDF, Word (.docx), CSV i ZIP." });
+        return res.status(400).json({ 
+          error: "Tipus d'arxiu no vàlid. Només s'accepten PDF, Word (.docx), CSV i ZIP.",
+          errorCode: "INVALID_FILE_TYPE",
+          allowedTypes: ["PDF", "Word (.docx)", "CSV", "ZIP"]
+        });
       }
 
       const file = req.file;
