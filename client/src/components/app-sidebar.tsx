@@ -1,4 +1,4 @@
-import { Home, FileText, BookOpen, MessageSquare, TrendingUp, ClipboardList } from "lucide-react";
+import { Home, FileText, BookOpen, MessageSquare, TrendingUp, ClipboardList, Calendar, BarChart3, Share2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -44,6 +44,21 @@ const menuItems = [
     title: "Progrés",
     url: "/progress",
     icon: TrendingUp,
+  },
+  {
+    title: "Calendari",
+    url: "/calendar",
+    icon: Calendar,
+  },
+  {
+    title: "Analítiques",
+    url: "/analytics",
+    icon: BarChart3,
+  },
+  {
+    title: "Col·laboració",
+    url: "/collaboration",
+    icon: Share2,
   },
 ];
 
