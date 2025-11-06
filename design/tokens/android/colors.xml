@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="md_background">#F8FAFC</color>
+  <color name="md_surface">#FFFFFF</color>
+  <color name="md_primary">#3B82F6</color>
+
+  <color name="dark_bg">#0B1020</color>
+  <color name="dark_surface">#0E1420</color>
+  <color name="accent_cyan">#00E5FF</color>
+  <color name="accent_mint">#7CFFB2</color>
+  <color name="accent_amber">#FFD166</color>
+
+  <color name="editorial_bg">#FFFFFF</color>
+  <color name="editorial_accent1">#FF5A5F</color>
+</resources>
