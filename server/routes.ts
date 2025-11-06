@@ -43,7 +43,11 @@ const upload = multer({
       "application/x-zip-compressed",
     ];
     
-    if (allowedTypes.includes(file.mimetype) || file.originalname.endsWith('.zip')) {
+    // Check file extension as fallback when MIME type is missing or unrecognized
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedExtensions = ['.pdf', '.docx', '.csv', '.zip'];
+    
+    if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
       cb(null, true);
     } else {
       // Return false to reject file (multer will not save it)
@@ -298,7 +302,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Process document asynchronously (in background)
-        processDocumentAsync(document.id, file.path, file.originalname, file.mimetype);
+        // Pass normalized file extension instead of MIME type for reliable processing
+        processDocumentAsync(document.id, file.path, file.originalname, fileExtension);
 
         res.json(document);
       }
