@@ -228,16 +228,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const zip = new AdmZip(file.path);
           const zipEntries = zip.getEntries();
           const processedFiles: any[] = [];
-          
-          // Helper to get proper MIME type from extension
-          const getMimeTypeFromExtension = (ext: string): string => {
-            const extToMime: Record<string, string> = {
-              "pdf": "application/pdf",
-              "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-              "csv": "text/csv",
-            };
-            return extToMime[ext] || "application/octet-stream";
-          };
 
           for (const entry of zipEntries) {
             if (entry.isDirectory) continue;
@@ -258,9 +248,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const extractedPath = path.join(extractDir, `${Date.now()}-${path.basename(entry.entryName)}`);
             await fs.writeFile(extractedPath, entry.getData());
 
-            // Get proper MIME type
-            const mimeType = getMimeTypeFromExtension(entryExt);
-
             // Create document record for each file
             const document = await storage.createDocument({
               userId,
@@ -272,8 +259,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               subjectId: null,
             });
 
-            // Process document asynchronously with correct MIME type
-            processDocumentAsync(document.id, extractedPath, path.basename(entry.entryName), mimeType);
+            // Process document asynchronously with normalized extension
+            // Using extension instead of MIME type for consistency with non-ZIP uploads
+            processDocumentAsync(document.id, extractedPath, path.basename(entry.entryName), entryExt);
             
             processedFiles.push(document);
           }
