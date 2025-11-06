@@ -43,7 +43,11 @@ const upload = multer({
       "application/x-zip-compressed",
     ];
     
-    if (allowedTypes.includes(file.mimetype) || file.originalname.endsWith('.zip')) {
+    // Check file extension as fallback when MIME type is missing or unrecognized
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedExtensions = ['.pdf', '.docx', '.csv', '.zip'];
+    
+    if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
       cb(null, true);
     } else {
       // Return false to reject file (multer will not save it)
@@ -224,16 +228,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const zip = new AdmZip(file.path);
           const zipEntries = zip.getEntries();
           const processedFiles: any[] = [];
-          
-          // Helper to get proper MIME type from extension
-          const getMimeTypeFromExtension = (ext: string): string => {
-            const extToMime: Record<string, string> = {
-              "pdf": "application/pdf",
-              "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-              "csv": "text/csv",
-            };
-            return extToMime[ext] || "application/octet-stream";
-          };
 
           for (const entry of zipEntries) {
             if (entry.isDirectory) continue;
@@ -254,9 +248,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const extractedPath = path.join(extractDir, `${Date.now()}-${path.basename(entry.entryName)}`);
             await fs.writeFile(extractedPath, entry.getData());
 
-            // Get proper MIME type
-            const mimeType = getMimeTypeFromExtension(entryExt);
-
             // Create document record for each file
             const document = await storage.createDocument({
               userId,
@@ -268,8 +259,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               subjectId: null,
             });
 
-            // Process document asynchronously with correct MIME type
-            processDocumentAsync(document.id, extractedPath, path.basename(entry.entryName), mimeType);
+            // Process document asynchronously with normalized extension
+            // Using extension instead of MIME type for consistency with non-ZIP uploads
+            processDocumentAsync(document.id, extractedPath, path.basename(entry.entryName), entryExt);
             
             processedFiles.push(document);
           }
@@ -298,7 +290,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Process document asynchronously (in background)
-        processDocumentAsync(document.id, file.path, file.originalname, file.mimetype);
+        // Pass normalized file extension instead of MIME type for reliable processing
+        processDocumentAsync(document.id, file.path, file.originalname, fileExtension);
 
         res.json(document);
       }
