@@ -14,6 +14,10 @@ import AdmZip from "adm-zip";
 // Mock user ID for demo purposes (in production, use proper authentication)
 const DEMO_USER_ID = "demo-user-001";
 
+// File upload configuration
+const MAX_FILE_SIZE = 250 * 1024 * 1024; // 250MB limit
+const MAX_FILE_SIZE_MB = Math.round(MAX_FILE_SIZE / (1024 * 1024)); // Convert to MB for display
+
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.diskStorage({
@@ -32,7 +36,7 @@ const upload = multer({
     },
   }),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fileSize: MAX_FILE_SIZE,
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
@@ -52,6 +56,26 @@ const upload = multer({
     }
   },
 });
+
+// Middleware to handle file upload errors
+const handleUploadError = (req: any, res: any, next: any) => {
+  upload.single("file")(req, res, (err) => {
+    if (err) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ 
+          error: `El fitxer és massa gran. La mida màxima és de ${MAX_FILE_SIZE_MB} MB.`,
+          errorCode: "FILE_TOO_LARGE",
+          maxSize: `${MAX_FILE_SIZE_MB} MB`
+        });
+      }
+      return res.status(400).json({ 
+        error: "Error en pujar el fitxer. Si us plau, torna-ho a provar.",
+        errorCode: "UPLOAD_ERROR"
+      });
+    }
+    next();
+  });
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard endpoints
@@ -190,12 +214,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/documents/upload", upload.single("file"), async (req, res) => {
+  app.post("/api/documents/upload", handleUploadError, async (req, res) => {
     try {
       const userId = DEMO_USER_ID;
       
       if (!req.file) {
-        return res.status(400).json({ error: "Tipus d'arxiu no vàlid. Només s'accepten PDF, Word (.docx), CSV i ZIP." });
+        return res.status(400).json({ 
+          error: "Tipus d'arxiu no vàlid. Només s'accepten PDF, Word (.docx), CSV i ZIP.",
+          errorCode: "INVALID_FILE_TYPE",
+          allowedTypes: ["PDF", "Word (.docx)", "CSV", "ZIP"]
+        });
       }
 
       const file = req.file;
